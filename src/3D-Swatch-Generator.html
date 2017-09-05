@@ -1,0 +1,296 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+  <head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="generator" content="PSPad editor, www.pspad.com">
+  <title></title>
+  
+  
+  <style>
+  body {font-family:Arial, sans-serif}
+  #assets {display:none}
+  .main {
+  position:relative;
+  
+	page-break-inside: avoid;
+  }
+  
+  #drawer {max-width:1160px; background:#eee; height:100px; overflow:hidden;}
+  #drawer canvas {width:1160px !important; height:1160px !important;}
+  
+  @#drawer canvas {width:800px !important; height:800px !important;}
+  
+  #colorform {display:inline-block}
+  
+  .colorHexList {display:inlne-block; float:left; width:150px;}
+  .colorHexList li {display:block; margin-bottom:5px;}
+  .hexkey {
+	margin-right:8px;
+	width:20px;
+	display:inline-block;
+	font-weight:700;
+	-webkit-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none; 
+  }
+  .hexname {display:inline-block; margin-right:10px; width:80px; }
+  .hexcolor {display:inline-block; width:20px; height:20px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  
+  #colorform input {width:80px; margin-right:10px;}
+  
+  </style>
+    
+<script src="vendor/chroma.min.js"></script>
+<script src="vendor/jquery.min.js"></script>
+<script src="vendor/two.min.js"></script>
+<script src="vendor/array-flatten.min.js"></script>
+<script src="vendor/FileSaver.min.js"></script>
+<script type>
+
+
+jQuery(function( $ ) {
+  
+	// Make an instance of two and place it on the page.
+	var elem = document.getElementById('drawer');
+	var params = { type: Two.Types['canvas'], width: 2048, height: 2048 };
+	var two = new Two(params).appendTo(elem);
+	var colorHexList = $('.colorHexList');
+	var startColor = 'white';
+	
+	var userControls = {};
+	
+  $('#colorform').submit(function(e) {
+    e.preventDefault();
+    
+    startColor = $('#startColor').val();
+	var numberOfColors = 4;
+	var numberOfRows = 2;
+	
+	
+	userControls.saturation = $('#saturationControl').val();
+	userControls.brightness = $('#brightnessControl').val();
+	userControls.hue = parseInt($('#hueControl').val());
+    
+	console.log(userControls);
+	
+    console.log(chroma(startColor).lab());
+    
+	var colorLib = new Array();
+	colorLib[0] = new Array();
+	colorLib[0][0] = new Array()
+	
+	var colorGamut = {};
+	
+	colorGamut.darkToBright = chroma.scale(
+		[
+			chroma(startColor).darken(userControls.brightness),
+			chroma(startColor).brighten(userControls.brightness)
+		]
+	).colors(numberOfColors);
+	
+	colorGamut.greyToSat = [];
+	
+	colorGamut.darkToBright.forEach(function(hex) {
+		let de = chroma(hex).desaturate(userControls.saturation);
+		let sa = chroma(hex).saturate(userControls.saturation);
+		colorGamut.greyToSat.push( chroma.scale([de,sa]).colors(numberOfColors) );
+	});
+
+	
+	
+	colorGamut.huer = [];
+	
+	colorGamut.greyToSat.forEach(function(arr) {
+		arr.forEach(function(hex) {
+			let hexHsl = chroma(hex).hsl();
+			let h1 = chroma.hsl(hexHsl[0] - userControls.hue, hexHsl[1], hexHsl[2]);
+			let h2 = chroma.hsl(hexHsl[0] + userControls.hue, hexHsl[1], hexHsl[2]);
+			
+			colorGamut.huer.push( chroma.scale([h1,h2]).colors(numberOfColors) );
+		});
+	});
+	
+	console.log(colorGamut);
+
+	var styles = {
+		family: 'proxima-nova, sans-serif',
+		size: 13,
+		leading: 50,
+		weight: 400,
+		fill: '#ffffff',
+		//stroke: '#cccccc'
+	};
+		  
+	var flattenedColorGamut = flatten(colorGamut.huer);
+	
+	
+	//flattenedColorGamut.sort(function (a, b) {
+	//  return chroma(b).hsl()[2] > chroma(a).hsl()[2] && chroma(b).hsl()[2] > chroma(a).hsl()[2];
+	//});
+	
+	flattenedColorGamut[0] = chroma(startColor).hex();
+	
+	var k = 0;
+	
+	$('.hexlist-wrapper').empty();
+	two.clear();
+	
+	for (var i = 0; i<flattenedColorGamut.length/numberOfRows; i++){
+		for (var j = 0; j<numberOfRows; j++){
+			//let j = i%2;
+			let x = i*64 +32, y = j*81 +40.5;
+			let rect = two.makeRectangle(x, y, 63, 80);
+			rect.fill = flattenedColorGamut[i+j];
+
+			if (chroma(flattenedColorGamut[i+j]).hsl()[2] < 0.6)
+				styles.fill = '#ffffff';
+			else 
+				styles.fill = '#000000';
+			
+			if (i+j == 0) {
+				rect.stroke = "#ffffff"
+				rect.linewidth = 4
+				let hexText = two.makeText(flattenedColorGamut[i+j], x-3, y+30, styles);
+			} else
+				rect.noStroke();
+
+			let text = two.makeText(k+1, x-22, y-31, styles);
+			
+			if (k==0 || k == Math.ceil(flattenedColorGamut.length/3) || k == Math.ceil(flattenedColorGamut.length/3)*2) {
+				colorHexList = $('<ul class="colorHexList"></ul>');
+				$('.hexlist-wrapper').append(colorHexList);
+			}
+			colorHexList.append('<li><span class="hexkey">'+k+'. </span><span class="hexname">'+flattenedColorGamut[i+j]+'</span><span class="hexcolor"><span class="hexcolor" style="background-color:'+flattenedColorGamut[i+j]+'; box-shadow: inset 0 0 0 1000px '+flattenedColorGamut[i+j]+';"></span></li>');
+			
+			
+			
+			k++;
+		}
+	}
+	
+	var shape = two.interpret($('#spheres')[0]).center();
+	shape.visible = true;
+	shape.translation.set(two.width - 20, 143);
+	shape.scale = 0.06;
+
+
+	// Don't forget to tell two to render everything
+	// to the screen
+	two.update();
+	
+    return false;
+  });
+
+
+
+	
+	//two.update();
+
+  
+  $('#downloadbtn').click(function(e) {
+	e.preventDefault();
+	
+	var canvas = $('#drawer canvas')[0], ctx = canvas.getContext("2d");
+	// draw to canvas...
+	
+	var swatchFilename = 'colorswatch_'+startColor.replace('#','')+'_s'+userControls.saturation+'b'+userControls.brightness+'h'+userControls.hue;
+	
+	canvas.toBlob(function(blob) {
+		saveAs(blob, swatchFilename+'.png');
+	});
+	
+	var vrmlCode = getVrml(swatchFilename+'.png');
+	var vrmlFilename = swatchFilename+'.wrl';
+	var vrmlFile = new File([vrmlCode], vrmlFilename, {type: "text/plain;charset=utf-8"});
+	saveAs(vrmlFile, vrmlFilename, true);
+	
+	return false;
+  });
+  
+  
+  
+});
+
+function getVrml(textureName) {
+	var vrmlBlock = `#VRML V2.0 utf8
+Transform { children [ 
+Shape {
+geometry IndexedFaceSet {
+	coord DEF objMeshCoords Coordinate {		point [
+-0.000046 20.500006 -17.499998,
+-0.000046 -17.500002 -17.499996,
+480.000061 -17.500002 -17.499996,
+480.000061 20.500006 -17.499998,
+-0.000046 20.500006 -20.500000,
+480.000061 20.500006 -20.500000,
+480.000061 -17.500002 -20.499998,
+-0.000046 -17.500002 -20.499998		]	}
+	texCoord DEF objMeshTexCoords TextureCoordinate {		point [
+.0000 1.0000,
+.0000 .9208,1.0000 .9208,1.0000 1.0000,.0000 .9208,1.0000 .9208,
+1.0000 1.0000,.0000 1.0000,.0001 .8854,.5986 .8854,.5985 .8959,
+.0000 .8959,.0000 .9103,.0792 .9103,.0792 .9165,.0000 .9165,
+.5985 .9083,.0000 .9083,.0001 .8979,.5986 .8979,.6823 .8917,
+.6031 .8917,.6031 .8854,.6823 .8854		]	}
+texCoordIndex [
+0 1 2 -1, 
+2 3 0 -1, 4 5 6 -1, 6 7 4 -1, 8 9 10 -1, 10 11 8 -1, 
+12 13 14 -1, 14 15 12 -1, 16 17 18 -1, 18 19 16 -1, 20 21 22 -1, 
+22 23 20 -1 ]#texCoordIndex
+coordIndex [
+0 1 2 -1, 
+2 3 0 -1, 4 5 6 -1, 6 7 4 -1, 0 3 5 -1, 5 4 0 -1, 
+3 2 6 -1, 6 5 3 -1, 2 1 7 -1, 7 6 2 -1, 1 0 4 -1, 
+4 7 1 -1 ] #coordIndex
+} #IndexedFaceSet
+appearance Appearance {
+	material Material { diffuseColor 0.588200 0.588200 0.588200 }
+	texture ImageTexture { url "colorswatch.png" }
+}#Appearance
+} #Shape
+] } #Transform`;
+
+	return vrmlBlock.replace('colorswatch.png',textureName);
+}
+</script>
+ 
+ 
+ 
+  </head>
+  <body>
+<div id="assets">
+<svg version="1.1" id="spheres" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+	 viewBox="0 0 396.6 378" style="enable-background:new 0 0 396.6 378;" xml:space="preserve">
+<style type="text/css">
+	.st0{fill:#25408F;}
+</style>
+<path class="st0" d="M198.3,0C89.1,0,0,89.1,0,198.3c0,49.6,18.3,96.9,51.5,133.6c1.6,1.9,4.1,2.8,6.3,2.8c2.5,0,4.7-0.9,6.6-2.5
+	l24.9-24.9C108,349,150,378,198.3,378c48.6,0,90.3-29.1,108.9-70.7l24.9,24.3c1.6,1.6,4.1,1.9,6.3,1.9c0,0,0,0,0.3,0
+	c2.5,0,4.7-0.3,6.3-2.2c33.2-36.6,51.5-83.4,51.5-133C396.6,88.7,307.6,0,198.3,0z M198.3,360c-55.9,0-101.7-45.5-101.7-101.7
+	s45.8-101.4,101.7-101.4S300,202.4,300,258.6C300,314.8,254.2,360,198.3,360z M338.2,312.6l-24-24c2.5-9.5,3.8-19.6,3.8-30
+	c0-66-53.7-119.4-119.4-119.4S79.3,193,79.3,258.6c0,10.4,1.3,20.5,3.8,30l-24,24c-26.2-32.2-40.7-72.3-40.7-114.3
+	C18.3,98.8,99.2,17.7,199,17.7c99.8,0,180.6,80.8,180.6,180.6C379,240.3,364.4,280.4,338.2,312.6z"/>
+</svg>
+</div>
+	<section class="main">
+		<form id="colorform">
+			Color: <input type="text" id="startColor" value="#6161c9" />
+			Saturation+-: <input type="text" id="saturationControl" value="1" />
+			Brightness+-: <input type="text" id="brightnessControl" value="1" />
+			Hue+-: <input type="text" id="hueControl" value="20" />
+			<input type="submit" id="createButton" value="Create" />
+		</form>
+		<button class="downloadbtn" id="downloadbtn">Generate 3D Swatch</button>
+
+		<div id="drawer"></div>
+
+		<h3>Color Key:</h3>
+		<div class="hexlist-wrapper">
+			<ul class="colorHexList">
+
+			</ul>
+		</div>
+	</section>
+  </body>
+</html>
