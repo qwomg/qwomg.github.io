@@ -158,7 +158,7 @@ jQuery(function( $ ) {
 				colorHexList = $('<ul class="colorHexList"></ul>');
 				$('.hexlist-wrapper').append(colorHexList);
 			}
-			colorHexList.append('<li><span class="hexkey">'+k+'. </span><span class="hexname">'+flattenedColorGamut[i+j]+'</span><span class="hexcolor"><span class="hexcolor" style="background-color:'+flattenedColorGamut[i+j]+'; box-shadow: inset 0 0 0 1000px '+flattenedColorGamut[i+j]+';"></span></li>');
+			colorHexList.append('<li><span class="hexkey">'+(k+1)+'. </span><span class="hexname">'+flattenedColorGamut[i+j]+'</span><span class="hexcolor"><span class="hexcolor" style="background-color:'+flattenedColorGamut[i+j]+'; box-shadow: inset 0 0 0 1000px '+flattenedColorGamut[i+j]+';"></span></li>');
 			k++;
 		}
 	}
