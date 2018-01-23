@@ -6,15 +6,30 @@
   <title></title>
   
   
-<style>body{font-family:Arial,sans-serif}#assets{display:none}.main{position:relative;page-break-inside:avoid}#drawer{max-width:1160px;background:#eee;height:100px;overflow:hidden}#drawer canvas{width:1160px!important;height:1160px!important}#colorform{display:inline-block}.colorHexList{display:inlne-block;float:left;width:150px}.colorHexList li{display:block;margin-bottom:5px}.hexcolor,.hexkey,.hexname{display:inline-block}.hexkey{margin-right:8px;width:20px;font-weight:700;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none}.hexname{margin-right:10px;width:80px}.hexcolor{width:20px;height:20px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+<style>
+body{font-family:Arial,sans-serif}
+#assets{display:none}
+.main{position:relative;page-break-inside:avoid}
+form {margin:0;}
+section {display:block; margin:5px 0 20px 0}
+h3 {margin-bottom:0}
+#drawer{max-width:1160px;background:#eee;height:100px;overflow:hidden}
+#drawer canvas{width:1160px!important;height:1160px!important}
+#colorform{display:inline-block}
+.colorHexList{display:inlne-block;float:left;width:150px}.colorHexList li{display:block;margin-bottom:5px}.hexcolor,.hexkey,.hexname{display:inline-block}.hexkey{margin-right:8px;width:20px;font-weight:700;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none}.hexname{margin-right:10px;width:80px}.hexcolor{width:20px;height:20px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 #colorform input{margin-right:10px; vertical-align: middle;}
 .number_input {width:40px;}
 #startColor {width:80px}
 .slider_input {width:100px;}
+
 </style>
 <script src="vendor.js"></script>
-
+<script src="jszip.min.js"></script>
 <script>
+var startColor = '';
+var colorSpaces = ['hex','rgb','lab','hsl','cmyk','name'];
+
+
 jQuery(function( $ ) {
   
 	// Make an instance of two and place it on the page.
@@ -22,8 +37,8 @@ jQuery(function( $ ) {
 	var params = { type: Two.Types['canvas'], width: 2048, height: 2048 };
 	var two = new Two(params).appendTo(elem);
 	var colorHexList = $('.colorHexList');
-	var startColor = 'white';
 	var userControls = {};
+  var colorSpace = $('#startColorSpace');
 	
   $('#saturationRangeControl').on('input',function(e) {
     saturationControl.value = saturationRangeControl.value;
@@ -50,13 +65,38 @@ jQuery(function( $ ) {
   });
   
   
-  
-  $('#colorform').submit(function(e) {
-
-    e.preventDefault();
+  function updateColorSpace() {
+    mixpanel.track("Create Swatch - Update Color");
     
     startColor = $('#startColor').val();
     
+    var commaColor = startColor.split(",") || [];
+    var twoCommas = ['rgb','lab','hsl'];
+    if (commaColor.length==3) {
+      startColor = chroma(commaColor).hex();
+      if (!twoCommas.includes(colorSpace.val())) {
+        colorSpace.val('rgb');
+      }
+    } else if (commaColor.length==4) {
+      startColor = chroma.cmyk(commaColor).hex();
+      colorSpace.val('cmyk');
+    } else if (startColor.indexOf('#') != -1) {
+      colorSpace.val('hex');
+    } else {
+      colorSpace.val('name');
+    }
+  }
+  
+  $('#startColor').on('change',function (e) {
+    updateColorSpace();
+  });
+
+
+  $('#colorform').submit(function(e) {
+    updateColorSpace();
+    e.preventDefault();
+    
+
 	var k = 0;
 	var numberOfColors = 4;
 	var numberOfRows = 2;
@@ -69,10 +109,7 @@ jQuery(function( $ ) {
 	
 
 	
-  var rgbColor = startColor.split(",") || [];
-  if (rgbColor.length>1) {
-    startColor = chroma(rgbColor).hex();
-  }
+
       
 	console.log(userControls);
   console.log(chroma(startColor).lab());
@@ -167,17 +204,6 @@ jQuery(function( $ ) {
 	}
   
 
-//$('input').keypress(function (e) {
-//  if (e.which == 13) {
-//    mixpanel.track("Create Swatch - Enter");
-//  }
-//});
-$('#startColor').on('change',function (e) {
-    mixpanel.track("Create Swatch - Update Color");
-});
-
-  	
-
 	var shape = two.interpret($('#spheres')[0]).center();
 	shape.visible = true;
 	shape.translation.set(two.width - 20, 143);
@@ -194,27 +220,31 @@ $('#startColor').on('change',function (e) {
   	var options = $('#optionsList').val();
   	var canvas = $('#drawer canvas')[0], ctx = canvas.getContext("2d"),
   	swatchFilename = 'colorswatch_'+startColor.replace('#','')+options+'_s'+userControls.saturation+'b'+userControls.brightness+'h'+userControls.hue;
-  	
-  	canvas.toBlob(function(blob) {
-  		saveAs(blob, swatchFilename+'.png');
-  	});
-    
-    
-  
-  	mixpanel.track("Saved Texture",{'Filename':swatchFilename});
-  	
+
     var thickness = "3mm";
-    if (options == 'vivid') {
+    if (options == 'transparent') {
       thickness = "2mm";
     }
-    
+    //create the VRML file
   	var vrmlCode = getVrml(swatchFilename+'.png',thickness),
   	vrmlFilename = swatchFilename+'.wrl',
   	vrmlFile = new File([vrmlCode], vrmlFilename, {type: "text/plain;charset=utf-8"});
-  	saveAs(vrmlFile, vrmlFilename, true);
-  	
-  	mixpanel.track("Saved VRML",{'Filename':vrmlFilename});
-  	
+    //saveAs(vrmlFile, vrmlFilename, true);
+    
+    //Create the texture and save everything to zip
+  	canvas.toBlob(function(canvasblob) {
+  		//saveAs(blob, swatchFilename+'.png');
+      var zip = new JSZip();
+      zip.file(swatchFilename+'.png', canvasblob);
+      zip.file(vrmlFilename, vrmlFile);
+      zip.generateAsync({type:"blob"})
+      .then(function(content) {
+          saveAs(content, swatchFilename+".zip");
+      });
+
+      mixpanel.track("Saved VRML",{'wrl filename':vrmlFilename,'Texture Filename':swatchFilename});
+  	});
+    
   	return false;
   });
 });
@@ -270,14 +300,14 @@ Transform { children [
 Shape {
 geometry IndexedFaceSet {
 	coord DEF objMeshCoords Coordinate {		point [
-.000000 1.999996 -38.000008,
-.000000 1.999998 .000000,
-480.000122 1.999998 .000000,
-480.000122 1.999996 -38.000008,
-.000000 -0.000002 -38.000008,
-480.000122 -0.000002 -38.000008,
-480.000122 .000000 .000000,
-.000000 .000000 .000000		]	}
+-0.000046 20.000011 -18.000004,
+-0.000046 -18.000011 -18.000004,
+480.000275 -18.000011 -18.000004,
+480.000275 20.000011 -18.000004,
+-0.000046 20.000011 -20.000002,
+480.000275 20.000011 -20.000002,
+480.000275 -18.000011 -20.000002,
+-0.000046 -18.000011 -20.000002		]	}
 	texCoord DEF objMeshTexCoords TextureCoordinate {		point [
 .0000 1.0000,
 .0000 .9208,1.0000 .9208,1.0000 1.0000,.0000 1.0000,1.0000 1.0000,
@@ -338,26 +368,38 @@ mixpanel.track("Page View");
 
 	<section class="main">
 		<form id="colorform">
-			Color: <input type="text" id="startColor" value="#6161c9" />
-      
-			Saturation+-: <input type="number" id="saturationControl" class="number_input" min="0" max="2" step="0.1" value="1" />
-      <input type="range" id="saturationRangeControl" class="slider_input" name="saturationRangeControl" min="0" max="2" step="0.1" value="1">
-            
-			Brightness+-: <input type="number" name="brightnessControl" class="number_input"  id="brightnessControl" min="0" max="2" step="0.1" value="1" />
-      <input type="range" id="brightnessRangeControl" class="slider_input" name="brightnessRangeControl" min="0" max="2" step="0.1" value="1">   
-       
-			Hue+-: <input type="number" id="hueControl" class="number_input" value="20" />
-      <input type="range" id="hueRangeControl" class="slider_input" name="hueRangeControl" min="0" max="100" step="1" value="20">
-      
-			<input type="submit" id="createButton" value="Create" />
-      
-      <select id="optionsList" name="optionsList">
-        <option value="">Default Settings</option>
-        <option value="vivid">Vivid Colors</option>
-      </select>
+      <section class="color-input-wrapper">
+  			Color: <input type="text" id="startColor" value="#6161c9" />
+        <select id="startColorSpace" name="startColorSpace">
+          <option value="hex">Hex</option>
+          <option value="rgb">RGB</option>
+          <option value="lab">Lab</option>
+          <option value="hsl">HSL</option>
+          <option value="cmyk">CMYK</option>
+          <option value="name">Name</option>
+        </select>
+      </section>
+      <section class="color-variation-wrapper">
+  			Saturation+-: <input type="number" id="saturationControl" class="number_input" min="0" max="2" step="0.1" value="1" />
+        <input type="range" id="saturationRangeControl" class="slider_input" name="saturationRangeControl" min="0" max="2" step="0.1" value="1">
+              
+  			Brightness+-: <input type="number" name="brightnessControl" class="number_input"  id="brightnessControl" min="0" max="2" step="0.1" value="1" />
+        <input type="range" id="brightnessRangeControl" class="slider_input" name="brightnessRangeControl" min="0" max="2" step="0.1" value="1">   
+         
+  			Hue+-: <input type="number" id="hueControl" class="number_input" value="20" />
+        <input type="range" id="hueRangeControl" class="slider_input" name="hueRangeControl" min="0" max="100" step="1" value="20">
+        
+  			<input type="submit" id="createButton" value="Create" />
+      </section>
+      <section class="download-wrapper">
+        <select id="optionsList" name="optionsList">
+          <option value="">Default Settings</option>
+          <option value="transparent">Transparent Colors</option>
+        </select>
+        <button class="downloadbtn" id="downloadbtn">Download 3D Swatch</button>
+      </section>
 		</form>
     
-		<button class="downloadbtn" id="downloadbtn">Download 3D Swatch</button>
 
 		<div id="drawer"></div>
 
