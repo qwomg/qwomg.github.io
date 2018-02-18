@@ -45,4 +45,19 @@ o=0,l=Math.PI/2}return a=e.map(e.range(h),function(e){var i=o+(l-o)*((h-e-0)/(h-
 /* From https://github.com/blakeembrey/array-flatten */
 "use strict";function flatten(t){if(!Array.isArray(t))throw new TypeError("Expected value to be an array");return flattenFrom(t)}function flattenFrom(t){return flattenDown(t,[])}function flattenDepth(t,r){if(!Array.isArray(t))throw new TypeError("Expected value to be an array");return flattenFromDepth(t,r)}function flattenFromDepth(t,r){if("number"!=typeof r)throw new TypeError("Expected the depth to be a number");return flattenDownDepth(t,[],r)}function flattenDown(t,r){for(var e=0;e<t.length;e++){var n=t[e];Array.isArray(n)?flattenDown(n,r):r.push(n)}return r}function flattenDownDepth(t,r,e){e--;for(var n=0;n<t.length;n++){var a=t[n];e>-1&&Array.isArray(a)?flattenDownDepth(a,r,e):r.push(a)}return r}
 
+//from https://stackoverflow.com/questions/9229645/remove-duplicate-values-from-js-array
+function uniq_fast(a) {
+    var seen = {};
+    var out = [];
+    var len = a.length;
+    var j = 0;
+    for(var i = 0; i < len; i++) {
+         var item = a[i];
+         if(seen[item] !== 1) {
+               seen[item] = 1;
+               out[j++] = item;
+         }
+    }
+    return out;
+}
 

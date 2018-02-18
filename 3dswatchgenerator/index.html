@@ -33,8 +33,9 @@ var colorSpaces = ['hex','rgb','lab','hsl','cmyk','name'];
 jQuery(function( $ ) {
   
 	// Make an instance of two and place it on the page.
+  var canvasSize = 4096;
 	var elem = document.getElementById('drawer');
-	var params = { type: Two.Types['canvas'], width: 2048, height: 2048 };
+	var params = { type: Two.Types['canvas'], width: canvasSize, height: canvasSize };
 	var two = new Two(params).appendTo(elem);
 	var colorHexList = $('.colorHexList');
 	var userControls = {};
@@ -106,10 +107,6 @@ jQuery(function( $ ) {
 	userControls.hue = parseInt($('#hueControl').val());
     
 	mixpanel.register({'Color':startColor,'Saturation':userControls.saturation,'Brightness':userControls.brightness,'Hue':userControls.hue});
-	
-
-	
-
       
 	console.log(userControls);
   console.log(chroma(startColor).lab());
@@ -145,21 +142,27 @@ jQuery(function( $ ) {
 			colorGamut.huer.push( chroma.scale([h1,h2]).colors(numberOfColors) );
 		});
 	});
+  
 	
 	var styles = {
 		family: 'proxima-nova, sans-serif',
-		size: 13,
+    alignment: 'left',
+		size: 28,
 		leading: 50,
 		weight: 400,
 		fill: '#ffffff'
 	};
 		  
-	var flattenedColorGamut = flatten(colorGamut.huer);
-	
+	var flattenedColorGamutOriginal = flatten(colorGamut.huer);
+  var flattenedColorGamut = uniq_fast(flattenedColorGamutOriginal);
+
 	flattenedColorGamut[0] = chroma(startColor).hex();
 
 	$('.hexlist-wrapper').empty();
 	two.clear();
+  
+	let rect = two.makeRectangle(canvasSize/2, canvasSize/2, canvasSize, canvasSize);
+	rect.fill = '#ffffff';
 	
   //sort by color lightness
   flattenedColorGamut.sort(function(colorA, colorB) {
@@ -168,14 +171,17 @@ jQuery(function( $ ) {
   
   //output color blocks      
   //change overlay text color so it's contrasted      
+  var totalColors = flattenedColorGamut.length;
+  
+  
 	for (var i = 0; i<numberOfRows; i++){
 		for (var j = 0; j<flattenedColorGamut.length/numberOfRows; j++){
 			//let j = i%2;
       
       let currentColor =  flattenedColorGamut[j+(i*flattenedColorGamut.length/numberOfRows)]; //flattenedColorGamut[i+(j*flattenedColorGamut.length/numberOfRows)];
-      
-			let x = j*64 +32, y = i*81 +40.5;
-			let rect = two.makeRectangle(x, y, 63, 80);
+      console.log(canvasSize/totalColors*2);
+			let x = j*canvasSize/totalColors*2 + canvasSize/totalColors, y = i*162 +81;
+			let rect = two.makeRectangle(x, y, canvasSize/totalColors*2-2, 80*2);
 			rect.fill = currentColor;
 
 			if (chroma(currentColor).hsl()[2] < 0.6)
@@ -188,11 +194,11 @@ jQuery(function( $ ) {
 				rect.stroke = "#ffffff"
 				rect.linewidth = 4
         //hsl lightness: Math.floor(chroma(currentColor).hsl()[2]*100)/100
-				let hexText = two.makeText(currentColor, x-3, y+30, styles);
+				let hexText = two.makeText(currentColor, x-canvasSize/totalColors + 6, y+30*2, styles);
 			} else
 				rect.noStroke();
 
-			let text = two.makeText(k+1, x-22, y-31, styles);
+			let text = two.makeText(k+1, x-canvasSize/totalColors + 6, y-31*2, styles);
 			
 			if (k==0 || k == Math.ceil(flattenedColorGamut.length/3) || k == Math.ceil(flattenedColorGamut.length/3)*2) {
 				colorHexList = $('<ul class="colorHexList"></ul>');
@@ -206,8 +212,8 @@ jQuery(function( $ ) {
 
 	var shape = two.interpret($('#spheres')[0]).center();
 	shape.visible = true;
-	shape.translation.set(two.width - 20, 143);
-	shape.scale = 0.06;
+	shape.translation.set(two.width - 20*2, 143*2);
+	shape.scale = 0.12;
 
 
 	two.update();
@@ -285,7 +291,7 @@ coordIndex [
 4 7 1 -1 ] #coordIndex
 } #IndexedFaceSet
 appearance Appearance {
-	material Material { diffuseColor 0.588200 0.588200 0.588200 }
+	material Material { diffuseColor 1 1 1 }
 	texture ImageTexture { url "colorswatch.png" }
 }#Appearance
 } #Shape
