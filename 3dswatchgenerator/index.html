@@ -2,7 +2,7 @@
 <html>
   <head>
   <meta http-equiv="content-type" content="text/html; charset=utf-8">
-  <meta name="generator" content="PSPad editor, www.pspad.com">
+  <meta name="generator" content="PSPad editor, www.pspad.com; LiorE">
   <title></title>
   
   
@@ -29,7 +29,6 @@ h3 {margin-bottom:0}
 var startColor = '';
 var colorSpaces = ['hex','rgb','lab','hsl','cmyk','name'];
 
-
 jQuery(function( $ ) {
   
 	// Make an instance of two and place it on the page.
@@ -39,6 +38,7 @@ jQuery(function( $ ) {
 	var two = new Two(params).appendTo(elem);
 	var colorHexList = $('.colorHexList');
 	var userControls = {};
+	var swatchSize;
   var colorSpace = $('#startColorSpace');
 	
   $('#saturationRangeControl').on('input',function(e) {
@@ -64,6 +64,26 @@ jQuery(function( $ ) {
   $('#hueControl').on('input',function(e) {
     hueRangeControl.value = hueControl.value;
   });
+  
+  $('#transparencyRangeControl').on('input',function(e) {
+    transparencyControl.value = transparencyRangeControl.value;
+    $('#colorform').trigger('submit');
+  });
+  $('#transparencyControl').on('input',function(e) {
+    transparencyRangeControl.value = transparencyControl.value;
+  });
+
+  
+
+  $('#optionsList').on('change',function(e) {
+    swatchSize = $(this).val();
+	if (swatchSize == 'bigswatch') {
+		$('#drawer').css('height','370px');
+	} else {
+		$('#drawer').css('height','100px');
+	}
+  });
+  
   
   
   function updateColorSpace() {
@@ -105,6 +125,7 @@ jQuery(function( $ ) {
 	userControls.saturation = $('#saturationControl').val();
 	userControls.brightness = $('#brightnessControl').val();
 	userControls.hue = parseInt($('#hueControl').val());
+	userControls.transparency = parseInt($('#transparencyControl').val());
     
 	mixpanel.register({'Color':startColor,'Saturation':userControls.saturation,'Brightness':userControls.brightness,'Hue':userControls.hue});
       
@@ -136,9 +157,9 @@ jQuery(function( $ ) {
 	colorGamut.greyToSat.forEach(function(arr) {
 		arr.forEach(function(hex) {
 			let hexHsl = chroma(hex).hsl();
-			let h1 = chroma.hsl(hexHsl[0] - userControls.hue, hexHsl[1], hexHsl[2]);
-			let h2 = chroma.hsl(hexHsl[0] + userControls.hue, hexHsl[1], hexHsl[2]);
-			
+			let h1 = chroma.hsl(hexHsl[0] - userControls.hue, hexHsl[1], hexHsl[2]);//.alpha(userControls.transparency/100);
+			let h2 = chroma.hsl(hexHsl[0] + userControls.hue, hexHsl[1], hexHsl[2]);//.alpha(userControls.transparency/100);
+
 			colorGamut.huer.push( chroma.scale([h1,h2]).colors(numberOfColors) );
 		});
 	});
@@ -152,9 +173,10 @@ jQuery(function( $ ) {
 		weight: 400,
 		fill: '#ffffff'
 	};
-		  
+	
+	  
 	var flattenedColorGamutOriginal = flatten(colorGamut.huer);
-  var flattenedColorGamut = uniq_fast(flattenedColorGamutOriginal);
+    var flattenedColorGamut = uniq_fast(flattenedColorGamutOriginal);
 
 	flattenedColorGamut[0] = chroma(startColor).hex();
 
@@ -169,11 +191,14 @@ jQuery(function( $ ) {
     return chroma(colorA).hsl()[2] - chroma(colorB).hsl()[2];
   });
   
+  
+	
+  
   //output color blocks      
   //change overlay text color so it's contrasted      
   var totalColors = flattenedColorGamut.length;
   
-  
+  var blockHeight = j*canvasSize/totalColors*2;
 	for (var i = 0; i<numberOfRows; i++){
 		for (var j = 0; j<flattenedColorGamut.length/numberOfRows; j++){
 			//let j = i%2;
@@ -184,13 +209,12 @@ jQuery(function( $ ) {
 			let rect = two.makeRectangle(x, y, canvasSize/totalColors*2-2, 80*2);
 			rect.fill = currentColor;
 
-			if (chroma(currentColor).hsl()[2] < 0.6)
+			if (chroma(currentColor).hsl()[2] < 0.6 && userControls.transparency < 50)
 				styles.fill = '#ffffff';
 			else 
 				styles.fill = '#000000';
-			
-
-      if (currentColor == chroma(startColor).hex()) {      
+	  
+      if (currentColor == chroma(startColor).hex()) {
 				rect.stroke = "#ffffff"
 				rect.linewidth = 4
         //hsl lightness: Math.floor(chroma(currentColor).hsl()[2]*100)/100
@@ -217,25 +241,67 @@ jQuery(function( $ ) {
 
 
 	two.update();
+
+	if (swatchSize == 'bigswatch') {
+		setTransparency (0, 0, 0, 1);
+		setTransparency (25, 0, 325, 0);
+		setTransparency (50, 0, 650, 0);
+		setTransparency (75, 0, 975, 0);
+	} else {
+		if (userControls.transparency > 0) {
+			two.makeText(userControls.transparency + "%", 6, 140, styles);
+			setTransparency (userControls.transparency, 0, 0, 1)
+		}
+	}
+	
 	
     return false;
   });
 
+	function setTransparency (percent, pos_x, pos_y, clearAll) {
+		var canvas = $('#drawer canvas')[0], ctx = canvas.getContext("2d");
+		// get the image data object
+		var image = ctx.getImageData(0, 0, $('#drawer canvas')[0].width, 320);
+		// get the image data values 
+		var imageData = image.data,
+		length = imageData.length;
+		// set every fourth value to 50
+		var alphaValue = 255-(255/ (100/percent));
+		var pixelColor = 0;
+		for(var i=3; i < length; i+=4){ 
+			pixelColor = imageData[i-1]+imageData[i-2]+imageData[i-3];
+			if (pixelColor > 5 && pixelColor < 760)
+				imageData[i] = alphaValue;
+		}
+		// after the manipulation, reset the data
+		image.data = imageData;
+		// and put the imagedata back to the canvas
+		if (clearAll) { two.clear(); two.update(); }
+		ctx.putImageData(image, pos_x, pos_y);
+	}
+  
+  
   $('#downloadbtn').click(function(e) {
   	e.preventDefault();
   	var options = $('#optionsList').val();
   	var canvas = $('#drawer canvas')[0], ctx = canvas.getContext("2d"),
-  	swatchFilename = 'colorswatch_'+startColor.replace('#','')+options+'_s'+userControls.saturation+'b'+userControls.brightness+'h'+userControls.hue;
-
+  	swatchFilename = 'colorswatch_'+startColor.replace('#','')+options+'_s'+userControls.saturation+'b'+userControls.brightness+'h'+userControls.hue+'t'+userControls.transparency;
+	
     var thickness = "3mm";
     if (options == 'transparent') {
       thickness = "2mm";
-    }
+    } else if (options == 'bigswatch') {
+	  thickness = "2mmBigSwatch";
+	}
     //create the VRML file
   	var vrmlCode = getVrml(swatchFilename+'.png',thickness),
   	vrmlFilename = swatchFilename+'.wrl',
   	vrmlFile = new File([vrmlCode], vrmlFilename, {type: "text/plain;charset=utf-8"});
     //saveAs(vrmlFile, vrmlFilename, true);
+	
+	//create the html doc
+	var htmldata = getHTML(swatchFilename);
+	htmlFile = new File([htmldata], swatchFilename+'.html', {type: "text/plain;charset=utf-8"});
     
     //Create the texture and save everything to zip
   	canvas.toBlob(function(canvasblob) {
@@ -243,6 +309,7 @@ jQuery(function( $ ) {
       var zip = new JSZip();
       zip.file(swatchFilename+'.png', canvasblob);
       zip.file(vrmlFilename, vrmlFile);
+	  zip.file(swatchFilename+'.html', htmlFile);
       zip.generateAsync({type:"blob"})
       .then(function(content) {
           saveAs(content, swatchFilename+".zip");
@@ -254,6 +321,15 @@ jQuery(function( $ ) {
   	return false;
   });
 });
+
+
+function getHTML(swatchFilename) {
+	var htmlcode = $('.hexlist-wrapper').html();
+	
+	htmlcode = '<html><head>' + $('head').html() + '</head><body><section class="main"><h3>Color Key for ' + swatchFilename + '</h3>' + htmlcode + '</section></body></html>';
+	
+	return htmlcode;
+}
 
 function getVrml(textureName,thickness) {
 	var vrmlBlock;
@@ -298,7 +374,7 @@ appearance Appearance {
 ] } #Transform`;
 
 
-} else {
+} else if (thickness == "2mm") {
 
 
 vrmlBlock = `#VRML V2.0 utf8
@@ -340,6 +416,137 @@ appearance Appearance {
 } #Shape
 ] } #Transform`;
 
+} else {
+
+vrmlBlock = `#VRML V2.0 utf8
+Background {
+	skyColor [ 0.627451 0.627451 0.627451 ]
+}
+Shape { # triangle mesh
+	appearance Appearance {
+		material Material { diffuseColor 1 1 1 
+	  transparency 1}
+		texture ImageTexture { url "colorswatch.png" }
+	}#Appearance
+	geometry IndexedFaceSet { # triangle mesh
+		ccw    TRUE
+		convex TRUE
+		solid  FALSE
+		coordIndex [
+			    0,    4,    7, -1, # triangle    0
+			    8,   12,    1, -1,
+			   15,   19,   22, -1,
+			   23,   26,   16, -1,
+			    2,   13,   20, -1,
+			   20,   17,    2, -1,
+			   14,    9,   24, -1,
+			   24,   21,   14, -1,
+			   10,    5,   27, -1,
+			   28,   25,   11, -1,
+			    6,    3,   18, -1,
+			   18,   29,    6, -1
+		] # 12 triangles
+		coord Coordinate { point [
+			-0 152 0, # coord point    0
+			-0 152 0,
+			-0 152 0,
+			-0 152 0,
+			-0 -0 -0,
+			-0 -0 -0,
+			-0 -0 -0,
+			480.0000915527344 -0 -0,
+			480.0000915527344 -0 -0,
+			480.0000915527344 -0 -0,
+			480.0000915527344 -0 -0,
+			480.0000915527344 -0 -0,
+			480.0000915527344 152 0,
+			480.0000915527344 152 0,
+			480.0000915527344 152 0,
+			-0 152 -2,
+			-0 152 -2,
+			-0 152 -2,
+			-0 152 -2,
+			480.0000915527344 152 -2,
+			480.0000915527344 152 -2,
+			480.0000915527344 152 -2,
+			480.0000915527344 0 -2,
+			480.0000915527344 0 -2,
+			480.0000915527344 0 -2,
+			480.0000915527344 0 -2, # coord point   25
+			-0 0 -2,
+			-0 0 -2,
+			-0 0 -2,
+			-0 0 -2
+		] } # 29 coord points
+		normal Normal { vector [
+			0 0 1, # normal vector    0
+			0 0 1,
+			0 1 0,
+			-1 0 0,
+			0 0 1,
+			0 -1 0,
+			-1 0 0,
+			0 0 1,
+			0 0 1,
+			1 0 0,
+			0 -1 0,
+			-0 -1 -0,
+			0 0 1,
+			0 1 0,
+			1 0 0,
+			0 0 -1,
+			0 0 -1,
+			0 1 0,
+			-1 0 0,
+			0 0 -1,
+			0 1 0,
+			1 0 0,
+			0 0 -1,
+			0 0 -1,
+			1 0 0,
+			-0 -1 -0, # normal vector   25
+			0 0 -1,
+			0 -1 0,
+			-0 -1 -0,
+			-1 0 0
+		] } # 29 normal vectors
+		texCoord TextureCoordinate { point [
+			0 1, # texCoord point    0
+			0 1,
+			9.999999747378752e-05 0.6467999815940857,
+			0.6031000018119812 0.6531000137329102,
+			0 0.6833000183105469,
+			0 0.669700026512146,
+			0.6822999715805054 0.6531000137329102,
+			1 0.6833000183105469,
+			1 0.6833000183105469,
+			0.07919999957084656 0.6717000007629395,
+			0.5985000133514404 0.669700026512146,
+			0.5985000133514404 0.669700026512146,
+			1 1,
+			0.5985999703407288 0.6467999815940857,
+			0 0.6717000007629395,
+			0 1,
+			0 1,
+			0 0.6572999954223633,
+			0.6031000018119812 0.6467999815940857,
+			1 1,
+			0.5985000133514404 0.6572999954223633,
+			0 0.6779000163078308,
+			1 0.6833000183105469,
+			1 0.6833000183105469,
+			0.07919999957084656 0.6779000163078308,
+			0.5985999703407288 0.6593000292778015, # texCoord point   25
+			0 0.6833000183105469,
+			9.999999747378752e-05 0.6593000292778015,
+			9.999999747378752e-05 0.6593000292778015,
+			0.6822999715805054 0.6467999815940857
+		] } # 29 texCoord points
+	} # geometry
+} # triangle mesh
+`;
+
+
 }
 
 	return vrmlBlock.replace('colorswatch.png',textureName);
@@ -350,7 +557,9 @@ appearance Appearance {
 <!-- start Mixpanel --><script type="text/javascript">(function(e,a){if(!a.__SV){var b=window;try{var c,l,i,j=b.location,g=j.hash;c=function(a,b){return(l=a.match(RegExp(b+"=([^&]*)")))?l[1]:null};g&&c(g,"state")&&(i=JSON.parse(decodeURIComponent(c(g,"state"))),"mpeditor"===i.action&&(b.sessionStorage.setItem("_mpcehash",g),history.replaceState(i.desiredHash||"",e.title,j.pathname+j.search)))}catch(m){}var k,h;window.mixpanel=a;a._i=[];a.init=function(b,c,f){function e(b,a){var c=a.split(".");2==c.length&&(b=b[c[0]],a=c[1]);b[a]=function(){b.push([a].concat(Array.prototype.slice.call(arguments,
 0)))}}var d=a;"undefined"!==typeof f?d=a[f]=[]:f="mixpanel";d.people=d.people||[];d.toString=function(b){var a="mixpanel";"mixpanel"!==f&&(a+="."+f);b||(a+=" (stub)");return a};d.people.toString=function(){return d.toString(1)+".people (stub)"};k="disable time_event track track_pageview track_links track_forms register register_once alias unregister identify name_tag set_config reset people.set people.set_once people.increment people.append people.union people.track_charge people.clear_charges people.delete_user".split(" ");
 for(h=0;h<k.length;h++)e(d,k[h]);a._i.push([b,c,f])};a.__SV=1.2;b=e.createElement("script");b.type="text/javascript";b.async=!0;b.src="undefined"!==typeof MIXPANEL_CUSTOM_LIB_URL?MIXPANEL_CUSTOM_LIB_URL:"file:"===e.location.protocol&&"//cdn.mxpnl.com/libs/mixpanel-2-latest.min.js".match(/^\/\//)?"https://cdn.mxpnl.com/libs/mixpanel-2-latest.min.js":"//cdn.mxpnl.com/libs/mixpanel-2-latest.min.js";c=e.getElementsByTagName("script")[0];c.parentNode.insertBefore(b,c)}})(document,window.mixpanel||[]);
-mixpanel.init("95ac86a1f68e4db8d6dd1f6a810f2b36");</script><!-- end Mixpanel -->
+mixpanel.init("95ac86a1f68e4db8d6dd1f6a810f2b36");
+//mixpanel.init("demo");
+</script><!-- end Mixpanel -->
 <script>
 mixpanel.track("Page View");
 </script>
@@ -394,6 +603,9 @@ mixpanel.track("Page View");
          
   			Hue+-: <input type="number" id="hueControl" class="number_input" value="20" />
         <input type="range" id="hueRangeControl" class="slider_input" name="hueRangeControl" min="0" max="100" step="1" value="20">
+          			
+			Transparency+-: <input type="number" id="transparencyControl" class="number_input" value="0" />
+        <input type="range" id="transparencyRangeControl" class="slider_input" name="transparencyRangeControl" min="0" max="100" step="1" value="0">
         
   			<input type="submit" id="createButton" value="Create" />
       </section>
@@ -401,6 +613,7 @@ mixpanel.track("Page View");
         <select id="optionsList" name="optionsList">
           <option value="">Default Settings</option>
           <option value="transparent">Transparent Colors</option>
+		  <option value="bigswatch">0-75% Transparency Big Swatch</option>
         </select>
         <button class="downloadbtn" id="downloadbtn">Download 3D Swatch</button>
       </section>
