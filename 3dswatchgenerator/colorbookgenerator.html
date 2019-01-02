@@ -8,14 +8,40 @@
   
 <style>
 html {box-sizing: border-box;}
-body{font-family: "Helvetica", Arial, sans-serif; margin:0 }
+
 #assets{display:none}
-.main{position:relative;page-break-inside:avoid; margin:20px 15px}
+:root {
+  --color-dark: #161616;
+  --color-ocean: #416dea;
+  --color-grass: #3dd28d;
+  --color-snow: #FFFFFF;
+  --color-salmon: #F32C52;
+  --color-sun: #feee7d;
+  --color-alge: #7999a9;
+  --color-flower: #353866;
+  --color-smoke: #efefef;
+  --font-face: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+}
+body{font-family: "Helvetica", Arial, sans-serif; margin:0; font-family: var(--font-face); }
 h1 {background-color: #e9e9e9; width:100%; padding:15px 15px 10px 15px; box-sizing:border-box; font-size:20px; color:#333;}
 small {font-size:70%; margin-left:10px; display:inline-block; font-weight:normal}
 form {margin:0;}
-section {display:block; margin:5px 0 20px 0}
+section {
+margin:0 0 20px; 
+position:relative;
+ display:block;
+  flex-flow:row;
+}
+section:last-child {margin-bottom:0}
+.main{position:relative;page-break-inside:avoid; margin:20px 15px 0; display:flex}
+.output {position:relative;page-break-inside:avoid; margin:20px 15px; }
+.column {display:inline-block; box-sizing:border-box; margin-right:10px}
 h3 {margin-bottom:0}
+
+.column.generate-wrapper {}
+.download-wrapper {margin-top:30px;}
+#optionsList {margin-bottom:5px;}
+
 #drawer{max-width:1160px;background:#eee;height:100px;overflow:hidden}
 #drawer canvas{width:1160px!important;height:1160px!important}
 #colorform{display:inline-block}
@@ -25,15 +51,116 @@ h3 {margin-bottom:0}
 #startColor {width:80px}
 .slider_input {width:100px;}
 
+textarea {width:100%}
 
 #numberOfColors {width:30px}
 #colorform input[type="radio"] {margin:0 0 0 10px}
 
+.leftTitle {display:block; width:auto; padding:5px; box-sizing:border-box; 
+margin:0 0 6px 0; font-size:15px; font-weight:bold; font-family:sans-serif;  
+color:#333; background:#e9e9e9; }
+
 footer {position: relative;width:100%; margin:100px 0 0 0; box-sizing: border-box; padding: 1rem; background-color: #f2f2f2;}
 .footer-content {color:#a0a0a0; font-size:14px;}
-.right {position:relative; right:0; float:right; color:#bfbfbf;}
+.footer-right {position:relative; right:0; float:right; color:#bfbfbf;}
 .footer-content a {color:#afafaf; font-weight:bold; text-decoration:none}
 .footer-content b {color:#87859c; margin-left: 10px;}
+
+.button {
+  display: flex;
+  overflow: hidden;
+  margin: 0;
+  padding: 12px 12px;
+  cursor: pointer;
+  -webkit-user-select: none;
+     -moz-user-select: none;
+      -ms-user-select: none;
+          user-select: none;
+  transition: all 150ms linear;
+  text-align: center;
+  white-space: nowrap;
+  text-decoration: none !important;
+  text-transform: none;
+  text-transform: capitalize;
+  color: #fff;
+  border: 0 none;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.3;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  justify-content: center;
+  align-items: center;
+  flex: 0 0 160px;
+  box-shadow: 1px 3px 5px var(--color-smoke);
+  width: 100%;
+}
+.button:hover {
+  transition: all 150ms linear;
+  opacity: .85;
+}
+.button:active {
+  transition: all 150ms linear;
+  opacity: .75;
+}
+.button:focus {
+  outline: 1px dotted #959595;
+  outline-offset: -4px;
+}
+
+.button.-regular {
+  color: #202129;
+  background-color: #f2f2f2;
+}
+.button.-regular:hover {
+  color: #202129;
+  background-color: #e1e2e2;
+  opacity: 1;
+}
+.button.-regular:active {
+  background-color: #d5d6d6;
+  opacity: 1;
+}
+
+.button.-dark {
+  color: var(--color-snow);
+  background: var(--color-dark);
+}
+.button.-dark:focus {
+  outline: 1px dotted white;
+  outline-offset: -4px;
+}
+
+.button.-green {
+  color: var(--color-snow);
+  background: var(--color-grass);
+}
+
+.button.-blue {
+  color: var(--color-snow);
+  background: var(--color-ocean);
+}
+
+.button.-salmon {
+  color: var(--color-snow);
+  background: var(--color-salmon);
+}
+
+.button.-sun {
+  color: #f15c5c;
+  background: var(--color-sun);
+}
+
+.button.-alge {
+  color: #e7ff20;
+  background: var(--color-alge);
+}
+
+.button.-flower {
+  color: #FE8CDF;
+  background: var(--color-flower);
+}
 </style>
 <script src="vendor.js"></script>
 <script src="jszip.min.js"></script>
@@ -96,12 +223,9 @@ jQuery(function( $ ) {
 	updateColorSpace();
 	numberOfColors = $('#numberOfColors').val();
 	var hex = chroma(startColor).hex();
-	//var mappedNumberOfColors = scale(numberOfColors,0, numberOfColors, 0, 3);
-	let de = chroma(hex).desaturate(2);
-	let sa = chroma(hex).saturate(2);
-	colorList = [];
-	colorList.push( chroma.scale([de,sa]).colors(numberOfColors) );
+	colorList = [chroma(hex).desaturate(2),startColor,chroma(hex).saturate(2)];
 	$('#colorList').text(colorList).val(colorList);
+	$("#scaling-rgb").prop('checked',true).trigger("change");
   });
   
   $('#generateBrightness').click(function(e) {
@@ -109,11 +233,9 @@ jQuery(function( $ ) {
 	updateColorSpace();
 	numberOfColors = $('#numberOfColors').val();
 	var hex = chroma(startColor).hex();
-	let de = chroma(hex).darken(2);
-	let sa = chroma(hex).brighten(2);
-	colorList = [];
-	colorList.push( chroma.scale([de,sa]).colors(numberOfColors) );
+	colorList = [chroma(hex).darken(2),startColor,chroma(hex).brighten(2)];
 	$('#colorList').text(colorList).val(colorList);
+	$("#scaling-rgb").prop('checked',true).trigger("change");
   });
   
   $('.preset-btn').click(function(e) {
@@ -123,9 +245,10 @@ jQuery(function( $ ) {
 	var colors = $(this).data('colors');//.split(/\,/).map($.trim).filter(function(v){return v!==''})
 	$('#colorList').text(colors).val(colors);
 	var scaling = $(this).data('scale');
-	$("input[name='scalingMode']").removeAttr('checked');
-	$("input[name='scalingMode']#scaling-"+scaling).attr('checked','checked');
+	//$("input[name='scalingMode']").removeAttr('checked');
+	$("#scaling-"+scaling).prop('checked',true).trigger("change");
   });
+  
   
   
   $('#colorform').submit(function(e) {
@@ -135,7 +258,7 @@ jQuery(function( $ ) {
 	
 	var styles = {
 		family: 'proxima-nova, sans-serif',
-    alignment: 'left',
+		alignment: 'left',
 		size: 28,
 		leading: 50,
 		weight: 400,
@@ -515,138 +638,87 @@ mixpanel.track("Page View");
 	C18.3,98.8,99.2,17.7,199,17.7c99.8,0,180.6,80.8,180.6,180.6C379,240.3,364.4,280.4,338.2,312.6z"/>
 </svg>
 </div>
-<h1>3D Color Book Generator <small>v0.1</small></h1>
+<h1>3D Color Book Generator <small>v0.2</small></h1>
+<form id="colorform">
 	<section class="main">
 	
-		<form id="colorform">
-      <section class="color-input-wrapper">
-  			Color: <input type="text" id="startColor" value="#6161c9" />
-        <select id="startColorSpace" name="startColorSpace">
-          <option value="hex">Hex</option>
-          <option value="rgb">RGB</option>
-          <option value="lab">Lab</option>
-          <option value="hsl">HSL</option>
-          <option value="cmyk">CMYK</option>
-          <option value="name">Name</option>
-        </select>
-		# of colors <input type="text" id="numberOfColors" value="30" /> 
-		Generate: <button class="btn" id="generateBrightness">Brightness</button>
-		<button class="btn" id="generateSaturation">Saturation</button>
-      </section>
-      <section class="color-preset-wrapper">
-	  Presets: 
-		<button class="btn preset-btn" data-colors="red,yellow,green,blue,purple" data-scale="rgb">Rainbow</button>
-		<button class="btn preset-btn" data-colors="#ffb3ba,#ffdfba,#ffffba,#baffc9,#bae1ff" data-scale="lrgb">Pastels</button>
-      </section>
-	  
-      <section class="color-variation-wrapper">
+		<div class="column">
+			
+		  <section class="color-input-wrapper">
+			<div class="leftTitle">
+			Start with Color
+			</div>
+				Color: <input type="text" id="startColor" value="#6161c9" />
+			<select id="startColorSpace" name="startColorSpace">
+			  <option value="hex">Hex</option>
+			  <option value="rgb">RGB</option>
+			  <option value="lab">Lab</option>
+			  <option value="hsl">HSL</option>
+			  <option value="cmyk">CMYK</option>
+			  <option value="name">Name</option>
+			</select>
+			
+			<button class="btn" id="generateBrightness">Brightness</button>
+			<button class="btn" id="generateSaturation">Saturation</button>
+		  </section>
+			<section class="color-preset-wrapper">
+				<div class="leftTitle">
+				Start with Preset
+				</div>
+			<button class="btn preset-btn" data-colors="red,yellow,green,blue,purple" data-scale="rgb">Rainbow</button>
+			<button class="btn preset-btn" data-colors="#ffb3ba,#ffdfba,#ffffba,#baffc9,#bae1ff" data-scale="lrgb">Pastels</button>
+			</section>
+		  
+		  
+		  
+		  <section class="color-variation-wrapper">
+		<div class="leftTitle">
+		Colors List
+		</div>
+		<textarea id="colorList" name="colorList">
+	#44413c,#434237,#473729,#434447,#e4002b,#8d8f8f,#84898c,#8b8c89,#e2e2da,#efefe8,#f0eee9,#f3ece0,#00205b,#06038d,#c34121,#8f8982,#1e22aa,#4db560,#29504d,#ff6a13,#d539b5,#f1e6b2,#db864e,#7b4931,#ff3eb5,#e6eeec,#ffdfb4,#f2ebe7,#eff4a4,#e1f0e5,#f4e4c1,#f93822,#d9d9d6,#00a9e0,#f4e5c0,#d6001c,#46434a,#f4e1c1,#b9eab3,#d8e7e7,#f0efe2,#b59dbb,#303ab2,#0957c3,#d0006f,#f4e3b5,#fed1bd,#dfddd7,#e4ccc6,#ffa300,#dab58f,#bdab9b,#f4f5f0,#f2e6b1,#fc8f9b,#f6909d,#ff6900,#edf1fe,#ffa64f,#e6af91,#bb29bb,#d6938a,#bc8a7e,
+	#44d62c,#c0a392,#dde5ed,#d9b48f,#f3f3f2,#c8c8c8,#a0a0a0,#7a7a79,#555555,#343434,#FF9E1B,#FFD100,#FF8200,#EF3340,#0085CA,#97D700,#142667 ,#006099,#e10600,#FFBE9F,#D3BC8D
+		</textarea>
+		 </section>
+		 <section>
+			<div class="leftTitle">
+				Scaling
+				<small>Creating the gradients. No Scaling = use just the listed colors</small>
+			</div>
+			<input type="radio" id="r1" name="scalingMode" value="noscaling" checked> <label for="r1">No Scaling</label>
+			<input type="radio" id="scaling-rgb" name="scalingMode" value="rgb"> <label for="scaling-rgb">rgb</label>
+			<input type="radio" id="scaling-lrgb" name="scalingMode" value="lrgb"> <label for="scaling-lrgb">lrgb</label>
+			<input type="radio" id="scaling-lab" name="scalingMode" value="lab"> <label for="scaling-lab">lab</label>
+			<input type="radio" id="scaling-hsl" name="scalingMode" value="hsl"> <label for="scaling-hsl">hsl</label>
+			<input type="radio" id="scaling-lch" name="scalingMode" value="lch"> <label for="scaling-lch">lch</label>
 		
-			<textarea id="colorList" name="colorList">
-#44413c
-#434237
-#473729
-#434447
-#e4002b
-#8d8f8f
-#84898c
-#8b8c89
-#e2e2da
-#efefe8
-#f0eee9
-#f3ece0
-#00205b
-#06038d
-#c34121
-#8f8982
-#1e22aa
-#4db560
-#29504d
-#ff6a13
-#d539b5
-#f1e6b2
-#db864e
-#7b4931
-#ff3eb5
-#e6eeec
-#ffdfb4
-#f2ebe7
-#eff4a4
-#e1f0e5
-#f4e4c1
-#f93822
-#d9d9d6
-#00a9e0
-#f4e5c0
-#d6001c
-#46434a
-#f4e1c1
-#b9eab3
-#d8e7e7
-#f0efe2
-#b59dbb
-#303ab2
-#0957c3
-#d0006f
-#f4e3b5
-#fed1bd
-#dfddd7
-#e4ccc6
-#ffa300
-#dab58f
-#bdab9b
-#f4f5f0
-#f2e6b1
-#fc8f9b
-#f6909d
-#ff6900
-#edf1fe
-#ffa64f
-#e6af91
-#bb29bb
-#d6938a
-#bc8a7e
-#44d62c
-#c0a392
-#dde5ed
-#d9b48f
-#f3f3f2
-#c8c8c8
-#a0a0a0
-#7a7a79
-#555555
-#343434
-#FF9E1B
-#FFD100
-#FF8200
-#EF3340
-#0085CA
-#97D700
-#142667 
-#006099
-#e10600
-#FFBE9F
-#D3BC8D
-</textarea>
-	  
-    <input type="radio" id="r1" name="scalingMode" value="noscaling" checked> <label for="r1">No Scaling</label>
-    <input type="radio" id="scaling-rgb" name="scalingMode" value="rgb"> <label for="scaling-rgb">rgb</label>
-    <input type="radio" id="scaling-lrgb" name="scalingMode" value="lrgb"> <label for="scaling-lrgb">lrgb</label>
-	<input type="radio" id="scaling-lab" name="scalingMode" value="lab"> <label for="scaling-lab">lab</label>
-	<input type="radio" id="scaling-hsl" name="scalingMode" value="hsl"> <label for="scaling-hsl">hsl</label>
-	<input type="radio" id="scaling-lch" name="scalingMode" value="lch"> <label for="scaling-lch">lch</label>
-	
-  			<input type="submit" id="createButton" value="Create" />
-      </section>
-      <section class="download-wrapper">
-        <select id="optionsList" name="optionsList">
-          <option value="">Default Settings (3mm height)</option>
-          <option value="transparent">Transparent Colors (2mm height)</option>
-        </select>
-        <button class="downloadbtn" id="downloadbtn">Download 3D Swatch</button>
-      </section>
-		</form>
-    
+		 </section>
+		 <section>
+			<div class="leftTitle">
+				Number of Colors
+			</div>
+			<input type="text" id="numberOfColors" value="30" /> 
+			
+		  </section>
 
+			
+		</div>
+		
+		<div class="column generate-wrapper">
+		  <input type="submit" class="button -blue" id="createButton" value="Generate Swatch" />
+		  
+		  <section class="download-wrapper">
+			<select id="optionsList" name="optionsList">
+			  <option value="">Default Settings (3mm height)</option>
+			  <option value="transparent">Transparent Colors (2mm height)</option>
+			</select>
+			<button class="downloadbtn button -salmon" id="downloadbtn">Download 3D Swatch</button>
+		  </section>
+		</div>
+		
+	</section>
+</form>
+	<section class="output">
 		<div id="drawer"></div>
 
 		<h3>Color Key:</h3>
@@ -656,10 +728,11 @@ mixpanel.track("Page View");
 			</ul>
 		</div>
 	</section>
+	
 	<footer>
 		<div class="footer-content">
-		<b>1.</b> Set the color (rgb, lab, hex, hsl, cmyk, or by name) <b>2.</b> Set the deviation of H/S/B, or use the default setting <b>3.</b> Download the result swatch at 3mm height (default) or 2mm height
-		<span class="right">Dev Demo by <a href="https://www.liorelgali.co.il/">Lior Elgali</a></span>
+		<b>1.</b> Set the color manually, or use a preset <b>2.</b> Generate the swatch <b>3.</b> Download the result swatch at 3mm height (default) or 2mm height
+		<span class="footer-right">Dev Demo by <a href="https://www.liorelgali.co.il/">Lior Elgali</a></span>
 		</div>
 	</footer>
 <script>
