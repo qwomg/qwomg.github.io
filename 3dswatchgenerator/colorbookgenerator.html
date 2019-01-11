@@ -1,9 +1,10 @@
+
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
   <head>
   <meta http-equiv="content-type" content="text/html; charset=utf-8">
   <meta name="author" content="Lior Elgali">
-  <title></title>
+  <title>Color Book Generators</title>
 
   
 <style>
@@ -57,7 +58,7 @@ textarea {width:100%}
 #colorform input[type="radio"] {margin:0 0 0 10px}
 
 .leftTitle {display:block; width:auto; padding:5px; box-sizing:border-box; 
-margin:0 0 6px 0; font-size:15px; font-weight:bold; font-family:sans-serif;  
+margin:0 0 6px 0; font-size:15px; font-weight:bold; font-family:sans-serif;   
 color:#333; background:#e9e9e9; }
 
 footer {position: relative;width:100%; margin:100px 0 0 0; box-sizing: border-box; padding: 1rem; background-color: #f2f2f2;}
@@ -105,7 +106,7 @@ footer {position: relative;width:100%; margin:100px 0 0 0; box-sizing: border-bo
   opacity: .75;
 }
 .button:focus {
-  outline: 1px dotted #959595;
+  outline: 1px dotted #959595; 
   outline-offset: -4px;
 }
 
@@ -144,7 +145,7 @@ footer {position: relative;width:100%; margin:100px 0 0 0; box-sizing: border-bo
 
 .button.-salmon {
   color: var(--color-snow);
-  background: var(--color-salmon);
+  background: var(--color-salmon); 
 }
 
 .button.-sun {
@@ -238,6 +239,8 @@ jQuery(function( $ ) {
 	$("#scaling-rgb").prop('checked',true).trigger("change");
   });
   
+  
+  
   $('.preset-btn').click(function(e) {
 	e.preventDefault();
 	updateColorSpace();
@@ -249,12 +252,21 @@ jQuery(function( $ ) {
 	$("#scaling-"+scaling).prop('checked',true).trigger("change");
   });
   
+  //submit on change
+  $('.updateOnChange').on('click',function(e) {
+	if (numberOfColors < 60) {
+		$('#colorform').trigger('submit');
+	}
+  });
+  
+  $('#varianceRangeControl').on('input',function(e) {
+    varianceControl.value = varianceRangeControl.value;
+  });
+  $('#varianceControl').on('input',function(e) {
+    varianceRangeControl.value = varianceControl.value;
+  });
   
   
-  $('#colorform').submit(function(e) {
-    updateColorSpace();
-	numberOfColors = $('#numberOfColors').val();
-    e.preventDefault();
 	
 	var styles = {
 		family: 'proxima-nova, sans-serif',
@@ -264,6 +276,12 @@ jQuery(function( $ ) {
 		weight: 400,
 		fill: '#ffffff'
 	};
+	
+  $('#colorform').submit(function(e) {
+    updateColorSpace();
+	numberOfColors = $('#numberOfColors').val();
+    e.preventDefault();
+
 
 	var colorGamut = $('#colorList').val().replace(/\,/g,'\n').split(/\n/).map($.trim).filter(function(v){return v!==''});  
 	
@@ -281,6 +299,9 @@ jQuery(function( $ ) {
   //  return chroma(colorA).hsl()[2] - chroma(colorB).hsl()[2];
   //});
   
+  var randomizeColors = varianceControl.value;
+
+  
   var scalingMode = $("input[name='scalingMode']:checked").val();
   if (scalingMode != "noscaling") {
 	var colorScale = chroma.scale(flattenedColorGamut).mode(scalingMode).domain([0,numberOfColors]);//.correctLightness();
@@ -292,6 +313,10 @@ jQuery(function( $ ) {
   
   //output color blocks      
   //change overlay text color so it's contrasted      
+  
+  if (flattenedColorGamut.length%2 == 1) {
+	flattenedColorGamut.push('#636363');
+  }
   var totalColors = flattenedColorGamut.length;
   var k = 0;
   var blockHeight = j*canvasSize/totalColors*2;
@@ -300,7 +325,18 @@ jQuery(function( $ ) {
 			//let j = i%2;
       
       let currentColor =  flattenedColorGamut[j+Math.floor(i*flattenedColorGamut.length/numberOfRows)]; //flattenedColorGamut[i+(j*flattenedColorGamut.length/numberOfRows)];
-      console.log(canvasSize/totalColors*2);
+	  if (randomizeColors > 0) {
+		//console.log(currentColor);
+		var newCurrentColor;
+		var randomized = Math.floor(Math.random() * randomizeColors)+(randomizeColors/1.5);
+		var randomizedbool = (j%2==0 ? -1 : 1);
+		newCurrentColor = chroma(currentColor).saturate(Math.floor(Math.random() * scale(randomizeColors, 0, 100, 0.3, 2))).hex();
+		let hexHsl = chroma(newCurrentColor).hsl();
+		newCurrentColor = chroma.hsl(hexHsl[0] + randomized*randomizedbool, hexHsl[1], hexHsl[2]).hex();
+
+		currentColor = newCurrentColor;
+	  }
+	  //console.log(canvasSize/totalColors*2);
 			let x = j*canvasSize/totalColors*2 + canvasSize/totalColors, y = i*162 +81;
 			let rect = two.makeRectangle(x, y, canvasSize/totalColors*2-2, 80*2);
 			rect.fill = currentColor;
@@ -343,7 +379,7 @@ jQuery(function( $ ) {
   	e.preventDefault();
   	var options = $('#optionsList').val();
   	var canvas = $('#drawer canvas')[0], ctx = canvas.getContext("2d"),
-  	swatchFilename = 'colorswatch_'+startColor.replace('#','')+options+'_s'+userControls.saturation+'b'+userControls.brightness+'h'+userControls.hue+'t'+userControls.transparency;
+  	swatchFilename = 'colorswatch_'+Date.now();
 	
     var thickness = "3mm";
     if (options == 'transparent') {
@@ -658,15 +694,19 @@ mixpanel.track("Page View");
 			  <option value="name">Name</option>
 			</select>
 			
-			<button class="btn" id="generateBrightness">Brightness</button>
-			<button class="btn" id="generateSaturation">Saturation</button>
+			<button class="btn updateOnChange" id="generateBrightness">Brightness</button>
+			<button class="btn updateOnChange" id="generateSaturation">Saturation</button>
 		  </section>
 			<section class="color-preset-wrapper">
 				<div class="leftTitle">
 				Start with Preset
 				</div>
-			<button class="btn preset-btn" data-colors="red,yellow,green,blue,purple" data-scale="rgb">Rainbow</button>
-			<button class="btn preset-btn" data-colors="#ffb3ba,#ffdfba,#ffffba,#baffc9,#bae1ff" data-scale="lrgb">Pastels</button>
+			<button class="btn preset-btn updateOnChange" data-colors="red,yellow,green,blue,purple" data-scale="rgb">Rainbow</button>
+			<button class="btn preset-btn updateOnChange" data-colors="#ffb3ba,#ffdfba,#ffffba,#baffc9,#bae1ff" data-scale="lrgb">Pastels</button>
+			<button class="btn preset-btn updateOnChange" data-colors="#d9d9d6,#d0d0ce,#c8c9c7,#bbbcbc,#b1b3b3,#a7a8a9,#97999b,#888b8d,#75787b,#63666a,#53565a,#3d3935" data-scale="none">Cool Greys</button>
+			<button class="btn preset-btn updateOnChange" data-colors="#d7d2cf,#cbc4bc,#bfb8af,#b6ada5,#aca39a,#a59c94,#968c83,#8c8279,#83786f,#796e65,#6e6259" data-scale="none">Warm Greys</button>
+			<button class="btn preset-btn updateOnChange" data-colors="#f0f0f0,#111111" data-scale="rgb">Neutral Greys</button>
+			
 			</section>
 		  
 		  
@@ -685,20 +725,22 @@ mixpanel.track("Page View");
 				Scaling
 				<small>Creating the gradients. No Scaling = use just the listed colors</small>
 			</div>
-			<input type="radio" id="r1" name="scalingMode" value="noscaling" checked> <label for="r1">No Scaling</label>
-			<input type="radio" id="scaling-rgb" name="scalingMode" value="rgb"> <label for="scaling-rgb">rgb</label>
-			<input type="radio" id="scaling-lrgb" name="scalingMode" value="lrgb"> <label for="scaling-lrgb">lrgb</label>
-			<input type="radio" id="scaling-lab" name="scalingMode" value="lab"> <label for="scaling-lab">lab</label>
-			<input type="radio" id="scaling-hsl" name="scalingMode" value="hsl"> <label for="scaling-hsl">hsl</label>
-			<input type="radio" id="scaling-lch" name="scalingMode" value="lch"> <label for="scaling-lch">lch</label>
+			<input type="radio" class="updateOnChange" id="scaling-none" name="scalingMode" value="noscaling" checked=""> <label for="scaling-none">No Scaling</label>
+			<input type="radio" class="updateOnChange" id="scaling-rgb" name="scalingMode" value="rgb"> <label for="scaling-rgb">rgb</label>
+			<input type="radio" class="updateOnChange" id="scaling-lrgb" name="scalingMode" value="lrgb"> <label for="scaling-lrgb">lrgb</label>
+			<input type="radio" class="updateOnChange" id="scaling-lab" name="scalingMode" value="lab"> <label for="scaling-lab">lab</label>
+			<input type="radio" class="updateOnChange" id="scaling-hsl" name="scalingMode" value="hsl"> <label for="scaling-hsl">hsl</label>
+			<input type="radio" class="updateOnChange" id="scaling-lch" name="scalingMode" value="lch"> <label for="scaling-lch">lch</label>
 		
 		 </section>
 		 <section>
 			<div class="leftTitle">
-				Number of Colors
+				Variance
 			</div>
-			<input type="number" step="1" min="2" max="1000" id="numberOfColors" value="30" /> 
-			
+			Number of Colors: <input type="number" step="1" min="2" max="1000" id="numberOfColors" value="30">  
+			Randomize <input type="number" id="varianceControl" class="number_input updateOnChange" min="0" max="100" step="1" value="0">
+							<input type="range" id="varianceRangeControl" class="slider_input updateOnChange" name="varianceRangeControl" min="0" max="100" step="1" value="0">
+
 		  </section>
 
 			
