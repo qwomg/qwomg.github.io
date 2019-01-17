@@ -1,4 +1,3 @@
-
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
   <head>
@@ -9,7 +8,6 @@
   
 <style>
 html {box-sizing: border-box;}
-
 #assets{display:none}
 :root {
   --color-dark: #161616;
@@ -38,11 +36,9 @@ section:last-child {margin-bottom:0}
 .output {position:relative;page-break-inside:avoid; margin:20px 15px; }
 .column {display:inline-block; box-sizing:border-box; margin-right:10px}
 h3 {margin-bottom:0}
-
 .column.generate-wrapper {}
 .download-wrapper {margin-top:30px;}
 #optionsList {margin-bottom:5px;}
-
 #drawer{max-width:1160px;background:#eee;height:100px;overflow:hidden}
 #drawer canvas{width:1160px!important;height:1160px!important}
 #colorform{display:inline-block}
@@ -51,22 +47,17 @@ h3 {margin-bottom:0}
 .number_input {width:40px;}
 #startColor {width:80px}
 .slider_input {width:100px;}
-
 textarea {width:100%}
-
 #numberOfColors {width:50px}
 #colorform input[type="radio"] {margin:0 0 0 10px}
-
 .leftTitle {display:block; width:auto; padding:5px; box-sizing:border-box; 
 margin:0 0 6px 0; font-size:15px; font-weight:bold; font-family:sans-serif;   
 color:#333; background:#e9e9e9; }
-
 footer {position: relative;width:100%; margin:100px 0 0 0; box-sizing: border-box; padding: 1rem; background-color: #f2f2f2;}
 .footer-content {color:#a0a0a0; font-size:14px;}
 .footer-right {position:relative; right:0; float:right; color:#bfbfbf;}
 .footer-content a {color:#afafaf; font-weight:bold; text-decoration:none}
 .footer-content b {color:#87859c; margin-left: 10px;}
-
 .button {
   display: flex;
   overflow: hidden;
@@ -109,7 +100,6 @@ footer {position: relative;width:100%; margin:100px 0 0 0; box-sizing: border-bo
   outline: 1px dotted #959595; 
   outline-offset: -4px;
 }
-
 .button.-regular {
   color: #202129;
   background-color: #f2f2f2;
@@ -123,7 +113,6 @@ footer {position: relative;width:100%; margin:100px 0 0 0; box-sizing: border-bo
   background-color: #d5d6d6;
   opacity: 1;
 }
-
 .button.-dark {
   color: var(--color-snow);
   background: var(--color-dark);
@@ -132,32 +121,26 @@ footer {position: relative;width:100%; margin:100px 0 0 0; box-sizing: border-bo
   outline: 1px dotted white;
   outline-offset: -4px;
 }
-
 .button.-green {
   color: var(--color-snow);
   background: var(--color-grass);
 }
-
 .button.-blue {
   color: var(--color-snow);
   background: var(--color-ocean);
 }
-
 .button.-salmon {
   color: var(--color-snow);
   background: var(--color-salmon); 
 }
-
 .button.-sun {
   color: #f15c5c;
   background: var(--color-sun);
 }
-
 .button.-alge {
   color: #e7ff20;
   background: var(--color-alge);
 }
-
 .button.-flower {
   color: #FE8CDF;
   background: var(--color-flower);
@@ -186,7 +169,6 @@ jQuery(function( $ ) {
 	var swatchSize;
 	var colorSpace = $('#startColorSpace');
 	var colorList = [], colorGamut;
-
 	
 	var numberOfColors = 4;
 	var numberOfRows = 2;
@@ -216,8 +198,6 @@ jQuery(function( $ ) {
   $('#startColor').on('change',function (e) {
     updateColorSpace();
   });
-
-
   
   $('#generateSaturation').click(function(e) {
 	e.preventDefault();
@@ -281,13 +261,10 @@ jQuery(function( $ ) {
     updateColorSpace();
 	numberOfColors = $('#numberOfColors').val();
     e.preventDefault();
-
-
 	var colorGamut = $('#colorList').val().replace(/\,/g,'\n').split(/\n/).map($.trim).filter(function(v){return v!==''});  
 	
 	var flattenedColorGamutOriginal = flatten(colorGamut);
     var flattenedColorGamut = uniq_fast(flattenedColorGamutOriginal);
-
 	$('.hexlist-wrapper').empty();
 	two.clear();
   
@@ -300,7 +277,6 @@ jQuery(function( $ ) {
   //});
   
   var randomizeColors = varianceControl.value;
-
   
   var scalingMode = $("input[name='scalingMode']:checked").val();
   if (scalingMode != "noscaling") {
@@ -328,27 +304,25 @@ jQuery(function( $ ) {
 	  if (randomizeColors > 0) {
 		//console.log(currentColor);
 		var newCurrentColor;
-		var randomized = Math.floor(Math.random() * randomizeColors)+(randomizeColors/1.5);
-		var randomizedbool = (j%2==0 ? -1 : 1);
-		newCurrentColor = chroma(currentColor).saturate(Math.floor(Math.random() * scale(randomizeColors, 0, 100, 0.3, 2))).hex();
+		var randomized = Math.floor(Math.random() * randomizeColors)+(randomizeColors/2);
+		var randomizedbool = (Math.floor(Math.random()*10)%2==0 ? -1 : 1);
+		newCurrentColor = chroma(currentColor).saturate(scale(Math.floor(Math.random() * (randomizeColors^2)/2), 0, 100, 0.1, 3)).hex();
 		let hexHsl = chroma(newCurrentColor).hsl();
+		//console.log(randomized*randomizedbool);
+		//console.log(hexHsl);
 		newCurrentColor = chroma.hsl(hexHsl[0] + randomized*randomizedbool, hexHsl[1], hexHsl[2]).hex();
-
 		currentColor = newCurrentColor;
 	  }
 	  //console.log(canvasSize/totalColors*2);
 			let x = j*canvasSize/totalColors*2 + canvasSize/totalColors, y = i*162 +81;
 			let rect = two.makeRectangle(x, y, canvasSize/totalColors*2-2, 80*2);
 			rect.fill = currentColor;
-
 			if (chroma(currentColor).hsl()[2] < 0.6)
 				styles.fill = '#ffffff';
 			else 
 				styles.fill = '#000000';
 	  
-
 			rect.noStroke();
-
 			var textPosX = x-canvasSize/totalColors + 6;
 			let hexText = two.makeText(currentColor, textPosX, y+30*2, styles);
 			
@@ -363,17 +337,14 @@ jQuery(function( $ ) {
 		}
 	}
   
-
 	var shape = two.interpret($('#spheres')[0]).center();
 	shape.visible = true;
 	shape.translation.set(two.width - 20*2, 143*2);
 	shape.scale = 0.12;
-
 	two.update();
 	
     return false;
   });
-
   
   $('#downloadbtn').click(function(e) {
   	e.preventDefault();
@@ -408,15 +379,12 @@ jQuery(function( $ ) {
       .then(function(content) {
           saveAs(content, swatchFilename+".zip");
       });
-
       mixpanel.track("Saved VRML",{'wrl filename':vrmlFilename,'Texture Filename':swatchFilename});
   	});
     
   	return false;
   });
 });
-
-
 function getHTML(swatchFilename) {
 	var htmlcode = $('.hexlist-wrapper').html();
 	
@@ -424,10 +392,8 @@ function getHTML(swatchFilename) {
 	
 	return htmlcode;
 }
-
 function getVrml(textureName,thickness) {
 	var vrmlBlock;
-
 if (thickness == "3mm") {  
 vrmlBlock =  `#VRML V2.0 utf8
 Transform { children [ 
@@ -466,11 +432,7 @@ appearance Appearance {
 }#Appearance
 } #Shape
 ] } #Transform`;
-
-
 } else if (thickness == "2mm") {
-
-
 vrmlBlock = `#VRML V2.0 utf8
 Transform { children [ 
 Shape {
@@ -509,9 +471,7 @@ appearance Appearance {
 }#Appearance
 } #Shape
 ] } #Transform`;
-
 } else {
-
 vrmlBlock = `#VRML V2.0 utf8
 Background {
 	skyColor [ 0.627451 0.627451 0.627451 ]
@@ -639,20 +599,15 @@ Shape { # triangle mesh
 	} # geometry
 } # triangle mesh
 `;
-
-
 }
-
 	return vrmlBlock.replace('colorswatch.png',textureName);
 }
-
-
 </script>
 <!-- start Mixpanel --><script type="text/javascript">(function(e,a){if(!a.__SV){var b=window;try{var c,l,i,j=b.location,g=j.hash;c=function(a,b){return(l=a.match(RegExp(b+"=([^&]*)")))?l[1]:null};g&&c(g,"state")&&(i=JSON.parse(decodeURIComponent(c(g,"state"))),"mpeditor"===i.action&&(b.sessionStorage.setItem("_mpcehash",g),history.replaceState(i.desiredHash||"",e.title,j.pathname+j.search)))}catch(m){}var k,h;window.mixpanel=a;a._i=[];a.init=function(b,c,f){function e(b,a){var c=a.split(".");2==c.length&&(b=b[c[0]],a=c[1]);b[a]=function(){b.push([a].concat(Array.prototype.slice.call(arguments,
 0)))}}var d=a;"undefined"!==typeof f?d=a[f]=[]:f="mixpanel";d.people=d.people||[];d.toString=function(b){var a="mixpanel";"mixpanel"!==f&&(a+="."+f);b||(a+=" (stub)");return a};d.people.toString=function(){return d.toString(1)+".people (stub)"};k="disable time_event track track_pageview track_links track_forms register register_once alias unregister identify name_tag set_config reset people.set people.set_once people.increment people.append people.union people.track_charge people.clear_charges people.delete_user".split(" ");
 for(h=0;h<k.length;h++)e(d,k[h]);a._i.push([b,c,f])};a.__SV=1.2;b=e.createElement("script");b.type="text/javascript";b.async=!0;b.src="undefined"!==typeof MIXPANEL_CUSTOM_LIB_URL?MIXPANEL_CUSTOM_LIB_URL:"file:"===e.location.protocol&&"//cdn.mxpnl.com/libs/mixpanel-2-latest.min.js".match(/^\/\//)?"https://cdn.mxpnl.com/libs/mixpanel-2-latest.min.js":"//cdn.mxpnl.com/libs/mixpanel-2-latest.min.js";c=e.getElementsByTagName("script")[0];c.parentNode.insertBefore(b,c)}})(document,window.mixpanel||[]);
-//mixpanel.init("95ac86a1f68e4db8d6dd1f6a810f2b36");
-mixpanel.init("demo");
+mixpanel.init("95ac86a1f68e4db8d6dd1f6a810f2b36");
+//mixpanel.init("demo");
 </script><!-- end Mixpanel -->
 <script>
 mixpanel.track("Page View");
@@ -782,8 +737,8 @@ mixpanel.track("Page View");
   (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
   m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
   })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
-  //ga('create', 'UA-105884083-1', 'auto');
-  //ga('send', 'pageview');
+  ga('create', 'UA-105884083-1', 'auto');
+  ga('send', 'pageview');
 </script>
   </body>
 </html>
