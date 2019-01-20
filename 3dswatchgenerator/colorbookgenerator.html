@@ -55,8 +55,8 @@ margin:0 0 6px 0; font-size:15px; font-weight:bold; font-family:sans-serif;
 color:#333; background:#e9e9e9; }
 footer {position: relative;width:100%; margin:100px 0 0 0; box-sizing: border-box; padding: 1rem; background-color: #f2f2f2;}
 .footer-content {color:#a0a0a0; font-size:14px;}
-.footer-right {position:relative; right:0; float:right; color:#bfbfbf;}
-.footer-content a {color:#afafaf; font-weight:bold; text-decoration:none}
+.footer-right {position:relative; right:0; float:right; color:#bebebe;}
+.footer-content a {color:#aeaeae; font-weight:bold; text-decoration:none}
 .footer-content b {color:#87859c; margin-left: 10px;}
 .button {
   display: flex;
@@ -172,6 +172,8 @@ jQuery(function( $ ) {
 	
 	var numberOfColors = 4;
 	var numberOfRows = 2;
+	var rowHeight = 160;
+	var uvHeight = rowHeight*numberOfRows;
   
   function updateColorSpace() {
     mixpanel.track("Create Swatch - Update Color");
@@ -219,8 +221,7 @@ jQuery(function( $ ) {
 	$("#scaling-rgb").prop('checked',true).trigger("change");
   });
   
-  
-  
+  //preset buttons
   $('.preset-btn').click(function(e) {
 	e.preventDefault();
 	updateColorSpace();
@@ -228,17 +229,16 @@ jQuery(function( $ ) {
 	var colors = $(this).data('colors');//.split(/\,/).map($.trim).filter(function(v){return v!==''})
 	$('#colorList').text(colors).val(colors);
 	var scaling = $(this).data('scale');
-	//$("input[name='scalingMode']").removeAttr('checked');
 	$("#scaling-"+scaling).prop('checked',true).trigger("change");
   });
   
-  //submit on change
+  //submit on change when not too many colors
   $('.updateOnChange').on('click',function(e) {
-	if (numberOfColors < 60) {
+	if (numberOfColors < 100) {
 		$('#colorform').trigger('submit');
 	}
   });
-  
+
   $('#varianceRangeControl').on('input',function(e) {
     varianceControl.value = varianceRangeControl.value;
   });
@@ -246,7 +246,16 @@ jQuery(function( $ ) {
     varianceRangeControl.value = varianceControl.value;
   });
   
-  
+  $('#optionsList').on('change',function(e) {
+    swatchSize = $(this).val();
+	if (swatchSize == 'bigswatch') {
+		$('#drawer').css('height','370px');
+		numberOfRows = 6;
+	} else {
+		$('#drawer').css('height','100px');
+		numberOfRows = 2;
+	}
+  });
 	
 	var styles = {
 		family: 'proxima-nova, sans-serif',
@@ -257,6 +266,14 @@ jQuery(function( $ ) {
 		fill: '#ffffff'
 	};
 	
+	//correct submit on enter
+  $('#colorform').keydown(function(e) {
+  	if (e.which == 13) {
+  		$(this).trigger('submit');
+  		return false;
+  	}
+  });
+
   $('#colorform').submit(function(e) {
     updateColorSpace();
 	numberOfColors = $('#numberOfColors').val();
@@ -271,75 +288,88 @@ jQuery(function( $ ) {
 	let rect = two.makeRectangle(canvasSize/2, canvasSize/2, canvasSize, canvasSize);
 	rect.fill = '#ffffff';
 	
-  //sort by color lightness
-  //flattenedColorGamut.sort(function(colorA, colorB) {
-  //  return chroma(colorA).hsl()[2] - chroma(colorB).hsl()[2];
-  //});
-  
-  var randomizeColors = varianceControl.value;
-  
-  var scalingMode = $("input[name='scalingMode']:checked").val();
-  if (scalingMode != "noscaling") {
-	var colorScale = chroma.scale(flattenedColorGamut).mode(scalingMode).domain([0,numberOfColors]);//.correctLightness();
-	flattenedColorGamut = [];
-	for (var i=0; i<numberOfColors; i++) {
-		flattenedColorGamut[i] = colorScale(i).hex();
+	//sort by color lightness
+	//flattenedColorGamut.sort(function(colorA, colorB) {
+	//  return chroma(colorA).hsl()[2] - chroma(colorB).hsl()[2];
+	//});
+
+	var randomizeColors = varianceControl.value;
+
+	var scalingMode = $("input[name='scalingMode']:checked").val();
+	if (scalingMode != "noscaling") {
+		var colorScale = chroma.scale(flattenedColorGamut).mode(scalingMode).domain([0,numberOfColors]);//.correctLightness();
+		flattenedColorGamut = [];
+		for (var i=0; i<numberOfColors; i++) {
+			flattenedColorGamut[i] = colorScale(i).hex();
+		}
 	}
-  }
-  
-  //output color blocks      
-  //change overlay text color so it's contrasted      
-  
-  if (flattenedColorGamut.length%2 == 1) {
-	flattenedColorGamut.push('#636363');
-  }
-  var totalColors = flattenedColorGamut.length;
-  var k = 0;
-  var blockHeight = j*canvasSize/totalColors*2;
+
+	//output color blocks      
+	//change overlay text color so it's contrasted      
+
+	//if (flattenedColorGamut.length%2 == 1) {
+	//	flattenedColorGamut.push('#636363');
+	//}
+	var totalColors = flattenedColorGamut.length;
+	var k = 0;
+	
+	var rowMargin = 2;
+	
+	var blocksPerRow = Math.ceil(totalColors/numberOfRows);
+	if (numberOfRows > totalColors) {
+		blocksPerRow = totalColors+1;
+	}
+	var blockWidth = canvasSize/blocksPerRow;
+	var blockHeight = 162*8/6;
+	
+	
+	
 	for (var i = 0; i<numberOfRows; i++){
-		for (var j = 0; j<flattenedColorGamut.length/numberOfRows; j++){
+		for (var j = 0; j<blocksPerRow && (j+Math.floor(i*blocksPerRow)) < totalColors; j++){
 			//let j = i%2;
       
-      let currentColor =  flattenedColorGamut[j+Math.floor(i*flattenedColorGamut.length/numberOfRows)]; //flattenedColorGamut[i+(j*flattenedColorGamut.length/numberOfRows)];
-	  if (randomizeColors > 0) {
-		//console.log(currentColor);
-		var newCurrentColor;
-		var randomized = Math.floor(Math.random() * randomizeColors)+(randomizeColors/2);
-		var randomizedbool = (Math.floor(Math.random()*10)%2==0 ? -1 : 1);
-		newCurrentColor = chroma(currentColor).saturate(scale(Math.floor(Math.random() * (randomizeColors^2)/2), 0, 100, 0.1, 3)).hex();
-		let hexHsl = chroma(newCurrentColor).hsl();
-		//console.log(randomized*randomizedbool);
-		//console.log(hexHsl);
-		newCurrentColor = chroma.hsl(hexHsl[0] + randomized*randomizedbool, hexHsl[1], hexHsl[2]).hex();
-		currentColor = newCurrentColor;
-	  }
-	  //console.log(canvasSize/totalColors*2);
-			let x = j*canvasSize/totalColors*2 + canvasSize/totalColors, y = i*162 +81;
-			let rect = two.makeRectangle(x, y, canvasSize/totalColors*2-2, 80*2);
-			rect.fill = currentColor;
-			if (chroma(currentColor).hsl()[2] < 0.6)
-				styles.fill = '#ffffff';
-			else 
-				styles.fill = '#000000';
-	  
-			rect.noStroke();
-			var textPosX = x-canvasSize/totalColors + 6;
-			let hexText = two.makeText(currentColor, textPosX, y+30*2, styles);
-			
-			let text = two.makeText(k+1, textPosX, y-31*2, styles);
-			
-			if (k==0 || k == Math.ceil(flattenedColorGamut.length/3) || k == Math.ceil(flattenedColorGamut.length/3)*2) {
-				colorHexList = $('<ul class="colorHexList"></ul>');
-				$('.hexlist-wrapper').append(colorHexList);
-			}
-			colorHexList.append('<li><span class="hexkey">'+(k+1)+'. </span><span class="hexname">'+currentColor+'</span><span class="hexcolor"><span class="hexcolor" style="background-color:'+currentColor+'; box-shadow: inset 0 0 0 1000px '+currentColor+';"></span></li>');
-			k++;
+		let currentColor =  flattenedColorGamut[j+Math.floor(i*blocksPerRow)]; //flattenedColorGamut[i+(j*flattenedColorGamut.length/numberOfRows)];
+		//create close random colors for color matching
+		if (randomizeColors > 0) {
+			var newCurrentColor;
+			var randomized = Math.floor(Math.random() * randomizeColors)+(randomizeColors/2);
+			var randomizedbool = (Math.floor(Math.random()*10)%2==0 ? -1 : 1);
+			newCurrentColor = chroma(currentColor).saturate(scale(Math.floor(Math.random() * (randomizeColors^2)/2), 0, 100, 0.1, 3)).hex();
+			let hexHsl = chroma(newCurrentColor).hsl();
+			newCurrentColor = chroma.hsl(hexHsl[0] + randomized*randomizedbool, hexHsl[1], hexHsl[2]).hex();
+			currentColor = newCurrentColor;
+		}
+		
+		let x = j*blockWidth + blockWidth/2, 
+			y = i*blockHeight + blockHeight/2; //align by center
+
+		let rect = two.makeRectangle(x, y, blockWidth, blockHeight);
+		
+		rect.fill = currentColor;
+		rect.noStroke();
+		
+		//text color
+		if (chroma(currentColor).hsl()[2] < 0.6)
+			styles.fill = '#ffffff';
+		else 
+			styles.fill = '#000000';
+		//text
+		var textPosX = x-blockWidth/2 + 6;
+		let hexText = two.makeText(currentColor, textPosX, y+blockHeight/2-22, styles);
+		let text = two.makeText(k+1, textPosX, y-blockHeight/2+22, styles);
+		
+		if (k==0 || k == Math.ceil(flattenedColorGamut.length/3) || k == Math.ceil(flattenedColorGamut.length/3)*2) {
+			colorHexList = $('<ul class="colorHexList"></ul>');
+			$('.hexlist-wrapper').append(colorHexList);
+		}
+		colorHexList.append('<li><span class="hexkey">'+(k+1)+'. </span><span class="hexname">'+currentColor+'</span><span class="hexcolor"><span class="hexcolor" style="background-color:'+currentColor+'; box-shadow: inset 0 0 0 1000px '+currentColor+';"></span></li>');
+		k++;
 		}
 	}
   
 	var shape = two.interpret($('#spheres')[0]).center();
 	shape.visible = true;
-	shape.translation.set(two.width - 20*2, 143*2);
+	shape.translation.set(two.width - 20*2, blockHeight-36);
 	shape.scale = 0.12;
 	two.update();
 	
@@ -356,7 +386,7 @@ jQuery(function( $ ) {
     if (options == 'transparent') {
       thickness = "2mm";
     } else if (options == 'bigswatch') {
-	  thickness = "2mmBigSwatch";
+	  thickness = "BigSwatch";
 	}
     //create the VRML file
   	var vrmlCode = getVrml(swatchFilename+'.png',thickness),
@@ -479,7 +509,7 @@ Background {
 Shape { # triangle mesh
 	appearance Appearance {
 		material Material { diffuseColor 1 1 1 
-	  transparency 1}
+	  transparency 0}
 		texture ImageTexture { url "colorswatch.png" }
 	}#Appearance
 	geometry IndexedFaceSet { # triangle mesh
@@ -516,21 +546,21 @@ Shape { # triangle mesh
 			480.0000915527344 152 0,
 			480.0000915527344 152 0,
 			480.0000915527344 152 0,
-			-0 152 -2,
-			-0 152 -2,
-			-0 152 -2,
-			-0 152 -2,
-			480.0000915527344 152 -2,
-			480.0000915527344 152 -2,
-			480.0000915527344 152 -2,
-			480.0000915527344 0 -2,
-			480.0000915527344 0 -2,
-			480.0000915527344 0 -2,
-			480.0000915527344 0 -2, # coord point   25
-			-0 0 -2,
-			-0 0 -2,
-			-0 0 -2,
-			-0 0 -2
+			-0 152 -3,
+			-0 152 -3,
+			-0 152 -3,
+			-0 152 -3,
+			480.0000915527344 152 -3,
+			480.0000915527344 152 -3,
+			480.0000915527344 152 -3,
+			480.0000915527344 0 -3,
+			480.0000915527344 0 -3,
+			480.0000915527344 0 -3,
+			480.0000915527344 0 -3, # coord point   25
+			-0 0 -3,
+			-0 0 -3,
+			-0 0 -3,
+			-0 0 -3
 		] } # 29 coord points
 		normal Normal { vector [
 			0 0 1, # normal vector    0
@@ -692,7 +722,7 @@ mixpanel.track("Page View");
 			<div class="leftTitle">
 				Variance
 			</div>
-			Number of Colors: <input type="number" step="1" min="2" max="1000" id="numberOfColors" value="30">  
+			Number of Colors: <input type="number" step="1" min="2" max="1000" class="updateOnChange" id="numberOfColors" value="30">  
 			Randomize <input type="number" id="varianceControl" class="number_input updateOnChange" min="0" max="100" step="1" value="0">
 							<input type="range" id="varianceRangeControl" class="slider_input updateOnChange" name="varianceRangeControl" min="0" max="100" step="1" value="0">
 
@@ -706,8 +736,9 @@ mixpanel.track("Page View");
 		  
 		  <section class="download-wrapper">
 			<select id="optionsList" name="optionsList">
-			  <option value="">Default Settings (3mm height)</option>
-			  <option value="transparent">Transparent Colors (2mm height)</option>
+			  <option value="">Default Settings (3mm thick)</option>
+			  <option value="transparent">Transparent Colors (2mm thick)</option>
+			  <option value="bigswatch">Big Swatch - 152mm (3mm thick)</option>
 			</select>
 			<button class="downloadbtn button -salmon" id="downloadbtn">Download 3D Swatch</button>
 		  </section>
@@ -715,6 +746,11 @@ mixpanel.track("Page View");
 		
 	</section>
 </form>
+<script>
+jQuery(function( $ ) {
+$('#optionsList>option:eq(2)').prop('selected', true).trigger('change');
+});
+</script>
 	<section class="output">
 		<div id="drawer"></div>
 
@@ -728,7 +764,7 @@ mixpanel.track("Page View");
 	
 	<footer>
 		<div class="footer-content">
-		<b>1.</b> Set the color manually, or use a preset <b>2.</b> Generate the swatch <b>3.</b> Download the result swatch at 3mm height (default) or 2mm height
+		<b>1.</b> Set the color manually, or use a preset <b>2.</b> Generate the swatch <b>3.</b> Download the result swatch at wanted size/thickness
 		<span class="footer-right">Dev Demo by <a href="https://www.liorelgali.co.il/">Lior Elgali</a></span>
 		</div>
 	</footer>
