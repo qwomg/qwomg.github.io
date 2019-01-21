@@ -251,9 +251,11 @@ jQuery(function( $ ) {
 	if (swatchSize == 'bigswatch') {
 		$('#drawer').css('height','370px');
 		numberOfRows = 6;
+		uvHeight = 162*8;
 	} else {
 		$('#drawer').css('height','100px');
 		numberOfRows = 2;
+		uvHeight = 162*2;
 	}
   });
 	
@@ -320,9 +322,7 @@ jQuery(function( $ ) {
 		blocksPerRow = totalColors+1;
 	}
 	var blockWidth = canvasSize/blocksPerRow;
-	var blockHeight = 162*8/6;
-	
-	
+	var blockHeight = uvHeight/numberOfRows;
 	
 	for (var i = 0; i<numberOfRows; i++){
 		for (var j = 0; j<blocksPerRow && (j+Math.floor(i*blocksPerRow)) < totalColors; j++){
@@ -747,9 +747,9 @@ mixpanel.track("Page View");
 	</section>
 </form>
 <script>
-jQuery(function( $ ) {
-$('#optionsList>option:eq(2)').prop('selected', true).trigger('change');
-});
+//jQuery(function( $ ) {
+//$('#optionsList>option:eq(2)').prop('selected', true).trigger('change');
+//});
 </script>
 	<section class="output">
 		<div id="drawer"></div>
