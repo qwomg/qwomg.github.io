@@ -3,8 +3,8 @@
   <head>
   <meta http-equiv="content-type" content="text/html; charset=utf-8">
   <meta name="author" content="Lior Elgali">
-  <title>Color Book Generators</title>
-<meta http-equiv="refresh" content="0;URL='https://http://qwomg.github.io/colorbook/'" />
+  <title>Color Book Generator</title>
+
   
 <style>
 html {box-sizing: border-box;}
@@ -55,8 +55,8 @@ margin:0 0 6px 0; font-size:15px; font-weight:bold; font-family:sans-serif;
 color:#333; background:#e9e9e9; }
 footer {position: relative;width:100%; margin:100px 0 0 0; box-sizing: border-box; padding: 1rem; background-color: #f2f2f2;}
 .footer-content {color:#a0a0a0; font-size:14px;}
-.footer-right {position:relative; right:0; float:right; color:#bebebe;}
-.footer-content a {color:#aeaeae; font-weight:bold; text-decoration:none}
+.footer-right {position:relative; right:0; float:right; color:#aeaeae;}
+.footer-content a {color:#7e7e7e; font-weight:bold; text-decoration:none}
 .footer-content b {color:#87859c; margin-left: 10px;}
 .button {
   display: flex;
@@ -146,8 +146,8 @@ footer {position: relative;width:100%; margin:100px 0 0 0; box-sizing: border-bo
   background: var(--color-flower);
 }
 </style>
-<script src="vendor.js"></script>
-<script src="jszip.min.js"></script>
+<script src="../3dswatchgenerator/vendor.js"></script>
+<script src="../3dswatchgenerator/jszip.min.js"></script>
 <script>
 var startColor = '';
 var colorSpaces = ['hex','rgb','lab','hsl','cmyk','name'];
@@ -306,17 +306,11 @@ jQuery(function( $ ) {
 		}
 	}
 
-	//output color blocks      
-	//change overlay text color so it's contrasted      
-
-	//if (flattenedColorGamut.length%2 == 1) {
-	//	flattenedColorGamut.push('#636363');
-	//}
 	var totalColors = flattenedColorGamut.length;
 	var k = 0;
 	
 	var rowMargin = 2;
-	
+	//output color blocks 
 	var blocksPerRow = Math.ceil(totalColors/numberOfRows);
 	if (numberOfRows > totalColors) {
 		blocksPerRow = totalColors+1;
@@ -348,7 +342,7 @@ jQuery(function( $ ) {
 		rect.fill = currentColor;
 		rect.noStroke();
 		
-		//text color
+		//change overlay text color so it's contrasted   
 		if (chroma(currentColor).hsl()[2] < 0.6)
 			styles.fill = '#ffffff';
 		else 
@@ -659,7 +653,7 @@ mixpanel.track("Page View");
 	C18.3,98.8,99.2,17.7,199,17.7c99.8,0,180.6,80.8,180.6,180.6C379,240.3,364.4,280.4,338.2,312.6z"/>
 </svg>
 </div>
-<h1>3D Color Book Generator <small>v0.2</small></h1>
+<h1>3D Color Book Generator <small>v0.3</small></h1>
 <form id="colorform">
 	<section class="main">
 	
@@ -735,7 +729,7 @@ mixpanel.track("Page View");
 		  <input type="submit" class="button -blue" id="createButton" value="Generate Swatch" />
 		  
 		  <section class="download-wrapper">
-			<select id="optionsList" name="optionsList">
+			<select id="optionsList" name="optionsList" class="updateOnChange">
 			  <option value="">Default Settings (3mm thick)</option>
 			  <option value="transparent">Transparent Colors (2mm thick)</option>
 			  <option value="bigswatch">Big Swatch - 152mm (3mm thick)</option>
